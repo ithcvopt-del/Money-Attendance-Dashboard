@@ -20,6 +20,7 @@
     'Missing Work', 'Holiday', 'Vacation Leave', 'Working on holidays'
   ];
   const SHIFTS = ['Day', 'Night', 'off'];
+  const EDIT_MONTHS_BACK = 2; // แก้ไขข้อมูลย้อนหลังได้กี่เดือน (นับจากวันนี้)
   const THAI_DAYS = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
 
   const IS_LOCAL = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
@@ -204,6 +205,17 @@
     };
   }
 
+  /** วันแรกที่ยังแก้ไขได้ (dateKey) = วันนี้ ย้อนหลัง EDIT_MONTHS_BACK เดือน */
+  function editCutoff() {
+    const now = new Date();
+    const d = new Date(now.getFullYear(), now.getMonth() - EDIT_MONTHS_BACK, now.getDate());
+    if (d.getDate() !== now.getDate()) d.setDate(0); // เช่น 31 -> สิ้นเดือนที่สั้นกว่า
+    return {
+      key: d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(),
+      display: ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + (d.getFullYear() + 543)
+    };
+  }
+
   /* ---------------- API (ชื่อฟังก์ชันเดียวกับ Code.gs) ---------------- */
   const API = {
     getPageUrls: function () {
@@ -242,6 +254,7 @@
     },
 
     getSheetData: async function () { return (await API.getReportData()).rows; },
+    getEditWindow: function () { const c = editCutoff(); return { months: EDIT_MONTHS_BACK, fromDisplay: c.display }; },
     getLeaveTypes: function () { return LEAVE_TYPES; },
     getShifts: function () { return SHIFTS; },
     getEmployeeNames: async function () { return (await API.getReportData()).names; },
@@ -254,11 +267,12 @@
 
     getMyEntries: async function (name) {
       if (!name) return [];
+      const cutoff = editCutoff().key;
       const rep = await API.getReportData();
       return rep.rows
         .filter(function (r) { return r.name === name; })
-        .sort(function (a, b) { return b.dateKey - a.dateKey || b.rowNumber - a.rowNumber; })
-        .slice(0, 60);
+        .filter(function (r) { return r.dateKey >= cutoff; })
+        .sort(function (a, b) { return b.dateKey - a.dateKey || b.rowNumber - a.rowNumber; });
     },
 
     submitEntry: async function (entry) {
@@ -288,6 +302,13 @@
 
       return mutate(function (db) {
         if (rowNum) {
+          const old = db.exec('SELECT date FROM entries WHERE id=?', [rowNum]);
+          if (!old.length) throw new Error('ไม่พบแถวข้อมูลที่จะแก้ไข กรุณาลองใหม่อีกครั้ง');
+          const oldP = parseIso(old[0].values[0][0]);
+          const cut = editCutoff();
+          if (oldP && oldP.dateKey < cut.key) {
+            throw new Error('แก้ไขได้เฉพาะข้อมูลย้อนหลัง ' + EDIT_MONTHS_BACK + ' เดือน (ตั้งแต่ ' + cut.display + ')');
+          }
           db.run(
             "UPDATE entries SET date=?, name=?, leave_type=?, shift=?, ot=?, picture=?, updated_at=datetime('now') WHERE id=?",
             [p.isoDate, entry.name, entry.leaveType, entry.shift, ot, picture, rowNum]);

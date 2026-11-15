@@ -445,6 +445,7 @@
   <div class="sheet" id="editSheet" style="display:none;">
     <div class="sheet-header">
       <h2>แก้ไขข้อมูลที่บันทึกไว้</h2>
+      <div id="editWindowNote" style="font-size:12.5px; color:var(--ink-soft); margin:-6px 0 10px;"></div>
     </div>
     <div class="sheet-body" id="editList">
       <div class="entry-empty">กำลังโหลด...</div>
@@ -575,6 +576,9 @@
     function openEditModal() {
       document.getElementById('editSheetOverlay').classList.add('open');
       document.getElementById('editSheet').style.display = 'flex';
+      const w = MoneyDB.api.getEditWindow();
+      document.getElementById('editWindowNote').innerText =
+        'แก้ไขได้ย้อนหลัง ' + w.months + ' เดือน (ตั้งแต่ ' + w.fromDisplay + ')';
       if (myEntriesCache) {
         renderEditList(myEntriesCache);
         return;
@@ -601,7 +605,7 @@
       const list = document.getElementById('editList');
       list.innerHTML = '';
       if (!entries || !entries.length) {
-        list.innerHTML = '<div class="entry-empty">ยังไม่มีข้อมูลที่บันทึกไว้</div>';
+        list.innerHTML = '<div class="entry-empty">ไม่มีข้อมูลในช่วง 2 เดือนที่ผ่านมา</div>';
         return;
       }
       entries.forEach(function (en) {
