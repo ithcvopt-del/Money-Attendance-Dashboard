@@ -3,6 +3,13 @@
 <head>
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Money">
+  <meta name="theme-color" content="#0a0e21">
   <title>Attendance &amp; Payroll Dashboard</title>
   <meta charset="UTF-8">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1526,7 +1533,7 @@ if (document.fonts && document.fonts.ready) {
          - รอบที่มี 31 วัน มาทำงาน >= 27 วัน -> 60 x 31
          - รอบที่มี 30 วัน มาทำงาน >= 26 วัน -> 60 x 30
          (เกณฑ์ = จำนวนวันในรอบ - 4  เช่น ก.พ. 28 วัน มาทำงาน >= 24 -> 60 x 28)
-       จำนวนวันในรอบ = รอบวันที่ 21 ของเดือนก่อน ถึงวันที่ 20 ของเดือนที่เลือก */
+       จำนวนวันในรอบ = รอบวันที่ CYCLE_START_DAY (16) ของเดือนก่อน ถึงวันที่ 15 ของเดือนที่เลือก */
     const FOOD_RATE = 60;
     const FOOD_FULL_MONTH_ALLOWANCE = 4;
 
@@ -1635,18 +1642,23 @@ if (document.fonts && document.fonts.ready) {
       return parseInt(p[0], 10) * 10000 + parseInt(p[1], 10) * 100 + parseInt(p[2], 10);
     }
 
+    /* รอบเงินเดือน: วันที่ CYCLE_START_DAY ของเดือนก่อน ถึง วันที่ (CYCLE_START_DAY - 1) ของเดือนที่เลือก
+       เช่น 16 -> รอบเดือน พ.ย. = 16/10 - 15/11 (เดิมใช้ 21 -> 21/10 - 20/11) */
+    const CYCLE_START_DAY = 16;
+    const CYCLE_END_DAY = CYCLE_START_DAY - 1;
+
     function computeCycleFromMonth(monthVal) {
       const parts = monthVal.split('-');
       const y = parseInt(parts[0], 10);
       const m = parseInt(parts[1], 10);
       let py = y, pm = m - 1;
       if (pm < 1) { pm = 12; py = y - 1; }
-      const startKey = py * 10000 + pm * 100 + 21;
-      const endKey = y * 10000 + m * 100 + 20;
+      const startKey = py * 10000 + pm * 100 + CYCLE_START_DAY;
+      const endKey = y * 10000 + m * 100 + CYCLE_END_DAY;
       const pad = function (n) { return ('0' + n).slice(-2); };
-      const startDisplay = '21/' + pad(pm) + '/' + py;
-      const endDisplay = '20/' + pad(m) + '/' + y;
-      // จำนวนวันในรอบ 21 -> 20 = จำนวนวันของเดือนก่อนหน้า (pm)
+      const startDisplay = pad(CYCLE_START_DAY) + '/' + pad(pm) + '/' + py;
+      const endDisplay = pad(CYCLE_END_DAY) + '/' + pad(m) + '/' + y;
+      // จำนวนวันในรอบ = จำนวนวันของเดือนก่อนหน้า (pm)
       const days = new Date(py, pm, 0).getDate();
       return { startKey: startKey, endKey: endKey, startDisplay: startDisplay, endDisplay: endDisplay, days: days };
     }
@@ -1664,7 +1676,7 @@ if (document.fonts && document.fonts.ready) {
       const m = Math.floor((dateKey % 10000) / 100);
       const d = dateKey % 100;
       let cy = y, cm = m;
-      if (d >= 21) {
+      if (d >= CYCLE_START_DAY) {
         cm = m + 1;
         if (cm > 12) { cm = 1; cy += 1; }
       }
@@ -1678,7 +1690,10 @@ if (document.fonts && document.fonts.ready) {
       }
       let maxKey = rows[0].dateKey;
       rows.forEach(function (r) { if (r.dateKey > maxKey) maxKey = r.dateKey; });
-      return cycleMonthForDateKey(maxKey);
+      // ไม่เลื่อนไปรอบอนาคต ถ้ามีข้อมูลวันที่ล่วงหน้าเกินวันนี้
+      const now = new Date();
+      const todayKey = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+      return cycleMonthForDateKey(Math.min(maxKey, todayKey));
     }
 
     let currentCycleLabel = 'ทั้งหมด';
