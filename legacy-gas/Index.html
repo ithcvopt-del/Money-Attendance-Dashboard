@@ -1,0 +1,2356 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --bg: #0a0e21;
+      --bg-soft: #0d1330;
+      --card: #101736;
+      --card-soft: #141c40;
+      --field: #18204a70;
+      --line: #232c56;
+      --ink: #f3f4f9;
+      --ink-soft: #8b93bd;
+      --ink-faint: #5b6390;
+      --accent: #4d7dfb;
+      --accent-dark: #3c68e6;
+      --accent-soft: rgba(77,125,251,.16);
+      --radius: 18px;
+      --radius-sm: 12px;
+      --panel-h: 640px;
+      --sidebar-w: 226px;
+      --sidebar-w-collapsed: 72px;
+    }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Sarabun', 'Segoe UI', Tahoma, sans-serif;
+      background:
+        radial-gradient(900px 480px at 14% -8%, rgba(77,125,251,.16), transparent 60%),
+        radial-gradient(700px 420px at 96% 4%, rgba(56,189,248,.10), transparent 55%),
+        var(--bg);
+      margin: 0;
+      color: var(--ink);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ---------- Sidebar ---------- */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--bg-soft);
+      border-right: 1px solid var(--line);
+      color: #b9bdd0;
+      flex-shrink: 0;
+      padding: 22px 16px;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      overflow-y: auto;
+      white-space: nowrap;
+      transition: width .25s ease, padding .25s ease;
+    }
+    /* ซ่อนเมนู = แสดงเฉพาะไอคอน */
+    .sidebar.collapsed {
+      width: var(--sidebar-w-collapsed);
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+    .sidebar.collapsed .nav-label,
+    .sidebar.collapsed .profile-text,
+    .sidebar.collapsed .sidebar-block { display: none; }
+    .sidebar.collapsed .profile { justify-content: center; padding: 0; }
+    .sidebar.collapsed .nav-item { justify-content: center; padding: 11px 0; gap: 0; }
+    .sidebar.collapsed .nav-ic { font-size: 17px; }
+
+    .sidebar-toggle {
+      position: fixed;
+      top: 30px;
+      left: var(--sidebar-w);
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      background: var(--card);
+      border: 1px solid var(--line);
+      color: var(--ink-soft);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      cursor: pointer;
+      z-index: 60;
+      transition: left .25s ease, background .15s, color .15s;
+      box-shadow: 0 4px 10px -4px rgba(0,0,0,.5);
+    }
+    .sidebar-toggle:hover { color: var(--ink); background: #23273a; }
+    .sidebar-toggle.collapsed { left: var(--sidebar-w-collapsed); }
+    @media (max-width: 720px) { .sidebar-toggle { display: none; } }
+    .sidebar .profile { display: flex; align-items: center; gap: 11px; margin-bottom: 28px; padding: 0 6px; }
+    .avatar {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, #4d7dfb, #38bdf8);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; color: #fff; font-size: 15px; flex-shrink: 0;
+      box-shadow: 0 8px 18px -8px rgba(77,125,251,.9);
+      background-size: cover;
+      background-position: center;
+    }
+    .avatar-wrap { position: relative; flex-shrink: 0; cursor: pointer; display: block; }
+    .avatar-cam {
+      position: absolute; inset: 0; border-radius: 12px;
+      background: rgba(10,14,33,.55); color: #fff; font-size: 15px;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity .15s;
+    }
+    .avatar-wrap:hover .avatar-cam { opacity: 1; }
+    .avatar-remove {
+      position: absolute; top: -6px; right: -6px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: #ef4444; color: #fff; font-size: 10px; font-weight: 800;
+      align-items: center; justify-content: center;
+      border: 2px solid var(--bg-soft);
+      opacity: 0; transition: opacity .15s;
+    }
+    .avatar-wrap:hover .avatar-remove { opacity: 1; }
+    .profile .name { font-weight: 700; font-size: 14px; color: #fff; line-height: 1.3; }
+    .profile .role { font-size: 11.5px; color: var(--ink-faint); }
+    .nav-item {
+      display: flex; align-items: center; gap: 11px;
+      padding: 11px 13px; border-radius: 11px;
+      font-size: 13.5px; color: #9fa3ba; cursor: pointer;
+      margin-bottom: 3px; font-weight: 500;
+      transition: background .15s, color .15s;
+    }
+    .nav-ic { width: 20px; text-align: center; flex-shrink: 0; line-height: 1; }
+    .nav-item.active { background: linear-gradient(135deg, #4d7dfb, #3b62e0); color: #fff; font-weight: 700; box-shadow: 0 10px 20px -8px rgba(77,125,251,.75); }
+    .nav-item:hover:not(.active) { background: #171f42; color: #d3d5e6; }
+    .nav-item.refreshing { pointer-events: none; opacity: .7; }
+    .nav-item.refreshing .nav-ic { animation: nav-spin 1s linear infinite; }
+    @keyframes nav-spin { to { transform: rotate(360deg); } }
+    .add-link { text-decoration: none; }
+    .sidebar-block {
+      margin-top: auto;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .sidebar-photo {
+      height: 108px;
+      border-radius: var(--radius-sm);
+      background-size: cover;
+      background-position: center;
+      border: 1px solid var(--line);
+      position: relative;
+      overflow: hidden;
+    }
+    .sidebar-photo::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, transparent 40%, rgba(10,14,33,.85));
+    }
+    .updated-box {
+      background: var(--card-soft);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      font-size: 11px;
+      color: var(--ink-soft);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .updated-box .dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.18); flex-shrink: 0; }
+    .sidebar-footer {
+      background: linear-gradient(155deg, #182352, #10163a);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 16px 14px;
+      text-align: center;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #a9adc4;
+    }
+    .sidebar-footer .ic { font-size: 15px; margin-bottom: 4px; }
+
+    /* ---------- Main ---------- */
+    .main { flex: 1; height: 100vh; overflow-y: auto; padding: 24px 28px 32px; min-width: 0; }
+    .header-row {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      flex-wrap: wrap; gap: 14px; margin-bottom: 18px;
+    }
+    .header-left { display: flex; align-items: flex-start; gap: 13px; }
+    .header-logo {
+      width: 42px; height: 42px; border-radius: 13px; flex-shrink: 0;
+      background: linear-gradient(135deg, #4d7dfb, #38bdf8);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 19px; box-shadow: 0 10px 20px -8px rgba(77,125,251,.85);
+      margin-top: 1px;
+    }
+    .header-row h1 { font-size: 21px; margin: 0 0 3px; font-weight: 800; letter-spacing: -.2px; display: inline; }
+    .header-row .subtitle { font-size: 12.5px; color: var(--ink-soft); margin: 0; }
+    .header-tagline {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-style: italic;
+      font-size: 12.5px;
+      color: #5eead4;
+      margin-left: 10px;
+      white-space: nowrap;
+    }
+    .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .range-box {
+      background: var(--card); border: 1px solid var(--line); border-radius: 999px;
+      padding: 9px 15px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px;
+      color: var(--ink);
+    }
+    .range-box select, .range-box input[type="month"] {
+      border: none; font-family: inherit; font-size: 13px; font-weight: 600;
+      color: var(--ink); background: transparent; color-scheme: dark;
+    }
+    .range-box select:focus, .range-box input:focus { outline: none; }
+    .range-box .ic {
+      width: 22px; height: 22px; border-radius: 7px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 11.5px;
+    }
+    .ic-box-blue   { background: rgba(77,125,251,.22); }
+    .ic-box-purple { background: rgba(139,92,246,.22); }
+    .ic-box-green  { background: rgba(34,197,94,.22); }
+    .btn { border: none; border-radius: 999px; padding: 10px 18px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: background .15s, transform .1s; }
+    .btn-primary { background: linear-gradient(135deg, #4d7dfb, #3b62e0); color: #fff; box-shadow: 0 8px 18px -8px rgba(77,125,251,.8); }
+    .btn-primary:hover { background: var(--accent-dark); }
+    .btn-ghost { background: var(--card); border: 1px solid var(--line); color: var(--ink-soft); }
+    .btn-ghost:hover { color: var(--ink); border-color: #3a3f57; }
+    .btn:active { transform: scale(.97); }
+    .add-link { text-decoration: none; }
+
+    /* ---------- Stat cards ---------- */
+    .stat-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 16px; margin-bottom: 8px; }
+    .stat-card {
+      border-radius: var(--radius);
+      padding: 16px; position: relative; overflow: hidden;
+      color: #fff;
+      box-shadow: 0 14px 26px -16px rgba(0,0,0,.6);
+    }
+    .stat-card .icon {
+      width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      font-size: 15px; margin-bottom: 14px; background: rgba(255,255,255,.22);
+    }
+    .stat-card .label { font-size: 11.5px; color: rgba(255,255,255,.82); font-weight: 600; margin-bottom: 3px; }
+    .stat-card .value { font-size: 21px; font-weight: 800; letter-spacing: -.2px; }
+    .stat-card .sub { font-size: 10.5px; color: rgba(255,255,255,.7); margin-top: 3px; }
+    .stat-card .bar-track { margin-top: 12px; height: 5px; width: 100%; border-radius: 999px; background: rgba(255,255,255,.22); overflow: hidden; }
+    .stat-card .bar-fill { height: 100%; border-radius: 999px; background: #fff; }
+    .stat-card .spark { display: none; }
+
+    .grad-blue   { background: linear-gradient(150deg, #1c3fae 0%, #274fd6 55%, #1a2f80 100%); }
+    .grad-green  { background: linear-gradient(150deg, #0f6b46 0%, #12925f 55%, #0a4a32 100%); }
+    .grad-orange { background: linear-gradient(150deg, #b4600a 0%, #e2820f 55%, #7a4106 100%); }
+    .grad-pink   { background: linear-gradient(150deg, #7a1350 0%, #a8206f 55%, #4c0c31 100%); }
+    .grad-purple { background: linear-gradient(150deg, #4c1d95 0%, #6d28d9 55%, #341368 100%); }
+    .grad-yellow { background: linear-gradient(150deg, #8a6d05 0%, #c99a0a 55%, #4f3d03 100%); }
+    .grad-teal   { background: linear-gradient(150deg, #0d6e66 0%, #14a092 55%, #084a45 100%); }
+    .grad-sky    { background: linear-gradient(150deg, #0a6b8f 0%, #1191bd 55%, #084b63 100%); }
+
+    /* ---------- Content grid ---------- */
+    .content-grid { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 16px; align-items: stretch; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; min-width: 0; box-shadow: 0 14px 30px -22px rgba(0,0,0,.7); }
+    .content-grid > .card:first-child,
+    .content-grid > .card:last-child {
+      height: var(--panel-h);
+      display: flex;
+      flex-direction: column;
+    }
+    .content-grid > .card:last-child { overflow-y: auto; }
+    .content-grid > .mid-col {
+      height: var(--panel-h);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-width: 0;
+    }
+    .content-grid > .mid-col > .card:first-child { flex: 0 0 auto; display: flex; flex-direction: column; margin-bottom: 0; }
+    .content-grid > .mid-col > .card:last-child { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .donut-wrap { flex: 0 0 auto; }
+    .donut-legend { flex: 0 0 auto; overflow: visible; }
+    #barChart { flex: 1; min-height: 0; }
+    .card-title { font-size: 14px; font-weight: 700; margin: 0 0 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-shrink: 0; }
+    .card-title .t { display: flex; align-items: center; gap: 9px; }
+    .card-title .t .ic {
+      width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 12.5px;
+    }
+    .card-title .pill { font-size: 10.5px; font-weight: 700; color: var(--ink-soft); background: var(--field); border: 1px solid var(--line); padding: 4px 10px; border-radius: 999px; display: flex; align-items: center; gap: 5px; }
+    .table-legend { display: flex; align-items: center; gap: 12px; font-size: 11px; color: var(--ink-soft); font-weight: 600; }
+    .table-legend .li { display: flex; align-items: center; gap: 5px; }
+    .table-legend .dot { width: 8px; height: 8px; border-radius: 50%; }
+
+    /* Daily table */
+    #tableWrap { flex: 1; min-height: 0; min-width: 0; overflow-y: auto; }
+    table.daily { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    table.daily th { position: sticky; top: 0; background: var(--card); text-align: left; padding: 10px 8px; color: var(--ink-faint); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .3px; border-bottom: 1px solid var(--line); }
+    table.daily td { padding: 10px 8px; border-bottom: 1px solid var(--line); color: var(--ink); }
+    table.daily tr:hover td { background: #1f2233; }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    #loading, #emptyState { font-size: 13px; color: var(--ink-soft); padding: 10px 2px; }
+
+    /* Donut */
+    .donut-wrap { position: relative; width: 100%; height: 156px; }
+    #donutChart { width: 100%; height: 156px; }
+    .donut-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; }
+    .donut-center .num { font-size: 24px; font-weight: 800; line-height: 1; }
+    .donut-center .lbl { font-size: 10.5px; color: var(--ink-soft); margin-top: 3px; font-weight: 600; }
+    .donut-legend { display: flex; flex-direction: column; gap: 7px; margin-top: 14px; font-size: 12.5px; }
+    .donut-legend .row { display: flex; justify-content: space-between; align-items: center; padding: 8px 11px; border-radius: 10px; background: var(--card-soft); border: 1px solid transparent; }
+    .donut-legend .row .k { display: flex; align-items: center; gap: 9px; color: var(--ink-soft); font-weight: 600; }
+    .donut-legend .row .v { font-weight: 700; color: var(--ink); }
+    .donut-legend .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .donut-legend .rate { margin-top: 3px; display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 10px; font-weight: 700; background: linear-gradient(135deg, rgba(52,217,127,.16), rgba(52,217,127,.03)); border: 1px solid rgba(52,217,127,.3); }
+    .donut-legend .rate .v { color: #34d97f; font-size: 13.5px; }
+
+    /* Weekly bar */
+    #barChart { width: 100%; height: 158px; margin-top: 2px; }
+
+    /* Salary panel */
+    .salary-tag { background: var(--accent-soft); color: #a9c0ff; font-size: 10.5px; font-weight: 700; padding: 4px 11px; border-radius: 999px; border: 1px solid rgba(77,125,251,.35); white-space: nowrap; }
+    .sal-cols { display: flex; justify-content: space-between; font-weight: 700; color: var(--ink-faint); font-size: 10.5px; text-transform: uppercase; letter-spacing: .3px; margin-bottom: 4px; }
+    .sal-section-title { font-size: 11px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .3px; margin: 14px 0 6px; }
+    .sal-row { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; padding: 7px 0; border-bottom: 1px solid var(--line); color: var(--ink-soft); }
+    .sal-row .v { font-weight: 700; color: var(--ink); }
+    .sal-row.income .v.b { color: #34d97f; }
+    .sal-row.deduct .v.b { color: #f87171; }
+    .sal-total { display: flex; justify-content: space-between; font-size: 13px; font-weight: 800; padding-top: 9px; }
+    .sal-note { font-size: 10.5px; color: var(--ink-faint); margin: -3px 0 6px; }
+    .net-box { margin-top: 14px; background: linear-gradient(135deg, #4d7dfb, #7c3aed); color: #fff; border-radius: 14px; padding: 16px 18px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 12px 26px -14px rgba(77,125,251,.8); }
+    .net-box .lbl { font-size: 12px; opacity: .85; font-weight: 600; }
+    .net-box .amt { font-size: 20px; font-weight: 800; }
+
+    /* ---------- Leave summary strip ---------- */
+    .leave-badges { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .leave-badge {
+      display: flex; align-items: center; gap: 7px;
+      background: var(--card-soft); border: 1px solid var(--line);
+      border-radius: 999px; padding: 6px 12px; font-size: 11.5px; font-weight: 700; color: var(--ink-soft);
+      white-space: nowrap;
+    }
+    .leave-badge .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .leave-badge .v { color: var(--ink); }
+    .leave-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+    .leave-card {
+      display: flex; align-items: center; gap: 12px;
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      border: 1px solid;
+      background: var(--card-soft);
+    }
+    .leave-card .ic {
+      width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 17px; color: #fff;
+    }
+    .leave-card .body { min-width: 0; flex: 1; }
+    .leave-card .top-row { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+    .leave-card .title { font-size: 12.5px; font-weight: 700; color: var(--ink); }
+    .leave-card .count { font-size: 13px; font-weight: 800; color: var(--ink); white-space: nowrap; }
+    .leave-card .en { font-size: 10.5px; color: var(--ink-faint); }
+    .leave-card .note { font-size: 10px; color: var(--ink-faint); margin-top: 2px; }
+
+    .leave-green  { border-color: rgba(34,197,94,.35); } .leave-green .ic { background: #16a34a; }
+    .leave-yellow { border-color: rgba(234,179,8,.35); } .leave-yellow .ic { background: #ca8a04; }
+    .leave-blue   { border-color: rgba(77,125,251,.35); } .leave-blue .ic { background: #3159d1; }
+    .leave-orange { border-color: rgba(249,115,22,.35); } .leave-orange .ic { background: #ea580c; }
+    .leave-purple { border-color: rgba(139,92,246,.35); } .leave-purple .ic { background: #7c3aed; }
+
+    @media (max-width: 1300px) {
+      .stat-grid { grid-template-columns: repeat(4, 1fr); }
+      .leave-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .leave-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 1100px) {
+      .content-grid { grid-template-columns: 1fr 1fr; }
+      .content-grid .card:first-child { grid-column: 1 / -1; }
+    }
+    @media (max-width: 900px) {
+      .content-grid > .card:first-child,
+      .content-grid > .card:last-child,
+      .content-grid > .mid-col { height: auto; }
+      .content-grid > .card:last-child { overflow-y: visible; }
+      #tableWrap { max-height: 420px; }
+      .donut-legend { overflow-y: visible; }
+      #barChart { min-height: 158px; }
+    }
+
+    /* ---------- Mobile floating add-entry button ---------- */
+    .mobile-fab {
+      display: none;
+      position: fixed;
+      right: calc(18px + env(safe-area-inset-right, 0px));
+      bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+      width: 54px; height: 54px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      align-items: center; justify-content: center;
+      font-size: 24px;
+      text-decoration: none;
+      box-shadow: 0 10px 26px rgba(0,0,0,.5), 0 0 0 4px var(--bg);
+      border: 1px solid rgba(255,255,255,.18);
+      z-index: 45;
+    }
+
+    /* ---------- Mobile bottom navigation bar ---------- */
+    .mobile-bottom-nav {
+      display: none;
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      z-index: 50;
+      background: var(--bg-soft);
+      border-top: 1px solid var(--line);
+      padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+      box-shadow: 0 -10px 24px -14px rgba(0,0,0,.7);
+    }
+    .mobile-bottom-nav .mbn-row {
+      display: flex;
+      align-items: stretch;
+      justify-content: space-between;
+      gap: 2px;
+    }
+    .mobile-bottom-nav .mbn-item {
+      flex: 1 1 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 2px;
+      padding: 6px 2px;
+      border-radius: 12px;
+      color: var(--ink-faint);
+      font-size: 10px;
+      font-weight: 700;
+      text-decoration: none;
+      background: none;
+      border: none;
+      font-family: inherit;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mobile-bottom-nav .mbn-item .mbn-ic { font-size: 18px; line-height: 1; }
+    .mobile-bottom-nav .mbn-item.active { color: var(--ink); }
+    .mobile-bottom-nav .mbn-item.active .mbn-ic {
+      background: linear-gradient(135deg, #4d7dfb, #3b62e0);
+      width: 30px; height: 30px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 16px -8px rgba(77,125,251,.85);
+      font-size: 15px;
+    }
+    .mobile-bottom-nav .mbn-item.mbn-add .mbn-ic {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      margin-top: -14px;
+      box-shadow: 0 8px 18px -6px rgba(77,125,251,.9), 0 0 0 4px var(--bg-soft);
+      font-size: 17px;
+    }
+
+    @media (max-width: 720px) {
+      html, body { overflow-x: hidden; }
+      body { display: block; }
+      .sidebar { display: none; }
+      .sidebar-toggle { display: none; }
+      .main { padding: 0 14px calc(78px + env(safe-area-inset-bottom, 0px)); min-width: 0; }
+      .mobile-fab { display: none !important; }
+      .mobile-bottom-nav { display: block; }
+      .header-row {
+        position: sticky; top: 0; z-index: 30;
+        background: var(--bg);
+        margin: 0 -14px 14px;
+        padding: 14px 14px 12px;
+        border-bottom: 1px solid var(--line);
+      }
+      .header-row h1 { font-size: 17px; }
+      .header-row .subtitle { font-size: 12px; }
+      .header-right { width: 100%; gap: 8px; }
+      .header-right, .header-right .range-box, .header-right .btn { flex: 1 1 auto; }
+      .range-box, .btn { padding: 9px 12px; font-size: 12.5px; }
+      .content-grid { grid-template-columns: 1fr; gap: 14px; margin-top: 14px; }
+      .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 24px; }
+      .card { padding: 14px; min-width: 0; }
+      .card-title { margin-bottom: 10px; font-size: 13.5px; }
+      .stat-card { padding: 12px; }
+      .stat-card .value { font-size: 18px; }
+      #tableWrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      table.daily { min-width: 560px; }
+      .content-grid > .card:first-child { position: relative; }
+      .content-grid > .card:first-child::after {
+        content: '';
+        position: absolute;
+        top: 50px; bottom: 14px; right: 14px;
+        width: 22px;
+        background: linear-gradient(to right, transparent, var(--card) 70%);
+        pointer-events: none;
+        border-radius: 0 var(--radius) var(--radius) 0;
+      }
+      .sal-row, .sal-total { flex-wrap: wrap; row-gap: 4px; }
+      .mobile-subpage-topbar {
+        display: none;
+        position: sticky; top: 0; z-index: 30;
+        background: var(--bg);
+        margin: 0 -14px 14px;
+        padding: 14px 14px 10px;
+        border-bottom: 1px solid var(--line);
+        align-items: center; justify-content: space-between; gap: 10px;
+      }
+      body.sub-page-mode .mobile-subpage-topbar { display: flex; }
+      .mobile-subpage-topbar .msp-title { font-size: 15.5px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+    }
+
+    @media (max-width: 420px) {
+      .stat-grid { grid-template-columns: 1fr 1fr; }
+      .header-right { flex-direction: column; align-items: stretch; }
+      .header-right .range-box, .header-right .btn { width: 100%; }
+    }
+
+    /* ---------- Sub pages (work data / salary / history) ---------- */
+    .page { display: none; }
+    .page.active { display: block; }
+    .page-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px; margin-bottom: 16px;
+    }
+    .page-toolbar .left-group, .page-toolbar .right-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .seg-toggle {
+      display: flex; background: var(--card); border: 1px solid var(--line);
+      border-radius: 999px; padding: 3px; gap: 2px;
+    }
+    .seg-toggle button {
+      border: none; background: transparent; color: var(--ink-soft);
+      font-family: inherit; font-size: 12.5px; font-weight: 700;
+      padding: 8px 16px; border-radius: 999px; cursor: pointer; transition: all .15s;
+    }
+    .seg-toggle button.active { background: linear-gradient(135deg, #4d7dfb, #3b62e0); color: #fff; box-shadow: 0 8px 16px -8px rgba(77,125,251,.8); }
+    .seg-toggle button:hover:not(.active) { color: var(--ink); }
+    .page-summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
+    .mini-stat {
+      border-radius: var(--radius); padding: 18px 18px 16px; color: #fff;
+      box-shadow: 0 16px 30px -18px rgba(0,0,0,.65);
+      position: relative; overflow: hidden;
+    }
+    .mini-stat::after {
+      content: '';
+      position: absolute; right: -30px; top: -30px; width: 110px; height: 110px;
+      border-radius: 50%; background: rgba(255,255,255,.08);
+    }
+    .mini-stat .top-row { display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 1; }
+    .mini-stat .ic-badge {
+      width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 16px;
+      background: rgba(255,255,255,.22);
+    }
+    .mini-stat .trend {
+      font-size: 10.5px; font-weight: 800; padding: 3px 9px; border-radius: 999px;
+      display: flex; align-items: center; gap: 3px;
+      background: rgba(255,255,255,.18); color: #fff;
+    }
+    .mini-stat .trend.down { background: rgba(0,0,0,.18); }
+    .mini-stat .lbl { font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,.85); margin: 12px 0 3px; position: relative; z-index: 1; }
+    .mini-stat .val { font-size: 21px; font-weight: 800; letter-spacing: -.2px; position: relative; z-index: 1; }
+    .big-chart-card {
+      background: linear-gradient(165deg, var(--card) 0%, var(--card-soft) 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .big-chart-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(600px 260px at 90% -10%, rgba(77,125,251,.14), transparent 60%);
+      pointer-events: none;
+    }
+    .big-chart-card .card-title { position: relative; z-index: 1; }
+    /* --- Fix: charts used to size themselves via flexbox + 100vh, which is
+       unreliable on mobile (address-bar show/hide changes 100vh AFTER the
+       chart already tried to draw at 0 height, leaving a blank/black box).
+       Chart containers now get a fixed pixel height straight from CSS, so
+       they always have a real, non-zero size the instant they're shown. */
+    #workdataChart { width: 100%; height: 420px; position: relative; z-index: 1; }
+    #historyChartWrap { width: 100%; height: 420px; position: relative; z-index: 1; }
+    #historyChart { width: 100% !important; height: 100% !important; position: relative; z-index: 1; display: block; }
+    #historyModeToggle { margin-top: 12px; position: relative; z-index: 1; }
+    .salary-chart-card { position: relative; overflow: hidden; }
+    .salary-chart-card .card-title { position: relative; z-index: 1; }
+    #salaryChart { width: 100%; height: 380px; position: relative; z-index: 1; }
+
+    /* ---------- Leave-type breakdown grid (ข้อมูลการทำงาน / ประวัติการทำงาน) ---------- */
+    .leavebd-grid {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+    }
+    .leavebd-card {
+      display: flex; align-items: center; gap: 12px;
+      background: linear-gradient(155deg, var(--card-soft), var(--card));
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 10px 16px 10px 10px;
+      box-shadow: 0 10px 20px -16px rgba(0,0,0,.6), inset 0 0 0 1px color-mix(in srgb, var(--c, var(--accent)) 18%, transparent);
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .leavebd-card:hover { transform: translateY(-2px); box-shadow: 0 14px 26px -16px rgba(0,0,0,.7); }
+    .leavebd-ic {
+      width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 17px; color: #fff;
+      box-shadow: 0 6px 14px -6px rgba(0,0,0,.5), 0 0 0 4px color-mix(in srgb, var(--c, var(--accent)) 16%, transparent);
+    }
+    .leavebd-body { min-width: 0; }
+    .leavebd-val { font-size: 17px; font-weight: 800; color: var(--ink); line-height: 1.15; }
+    .leavebd-val .unit { font-size: 10.5px; font-weight: 600; color: var(--ink-soft); }
+    .leavebd-th { font-size: 11.5px; font-weight: 700; color: var(--ink-soft); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .leavebd-en { font-size: 9.5px; color: var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    @media (max-width: 1300px) { .leavebd-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 720px) { .leavebd-grid { grid-template-columns: repeat(2, 1fr); } }
+    table.monthly { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    table.monthly th { text-align: left; padding: 10px 8px; color: var(--ink-faint); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .3px; border-bottom: 1px solid var(--line); background: var(--card); position: sticky; top: 0; }
+    table.monthly td { padding: 10px 8px; border-bottom: 1px solid var(--line); color: var(--ink); }
+    table.monthly tr:hover td { background: #1f2233; }
+    table.monthly tr.current-month td { background: rgba(77,125,251,.10); }
+    .monthly-table-wrap { max-height: 420px; overflow-y: auto; }
+    @media (max-width: 720px) {
+      .page-summary-grid { grid-template-columns: 1fr 1fr; }
+      #workdataChart, #historyChartWrap, #salaryChart { height: 280px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="sidebar" id="sidebar">
+    <div class="profile">
+      <label class="avatar-wrap" title="กดเพื่อเปลี่ยนรูปโปรไฟล์">
+        <div class="avatar" id="avatarInitial">S</div>
+        <span class="avatar-cam">📷</span>
+        <span class="avatar-remove" id="avatarRemove" title="ลบรูป" onclick="removeProfilePhoto(event)">✕</span>
+        <input type="file" accept="image/*" id="profilePhotoInput" style="display:none;" onchange="onProfilePhotoSelected(this)">
+      </label>
+      <div class="profile-text">
+        <div class="name" id="sideName">พนักงาน</div>
+        <div class="role">Employee Dashboard</div>
+      </div>
+    </div>
+    <div class="nav-item active" id="nav-overview" onclick="switchPage('overview')" title="ภาพรวม"><span class="nav-ic">📊</span><span class="nav-label">ภาพรวม</span></div>
+    <a class="add-link" id="addLink" href="#">
+      <div class="nav-item" title="เพิ่มข้อมูล"><span class="nav-ic">➕</span><span class="nav-label">เพิ่มข้อมูล</span></div>
+    </a>
+    <div class="nav-item" id="nav-workdata" onclick="switchPage('workdata')" title="ข้อมูลการทำงาน"><span class="nav-ic">🗂️</span><span class="nav-label">ข้อมูลการทำงาน</span></div>
+    <div class="nav-item" id="nav-salary" onclick="switchPage('salary')" title="สรุปเงินเดือน"><span class="nav-ic">💰</span><span class="nav-label">สรุปเงินเดือน</span></div>
+    <div class="nav-item" id="nav-history" onclick="switchPage('history')" title="ประวัติการทำงาน"><span class="nav-ic">🕒</span><span class="nav-label">ประวัติการทำงาน</span></div>
+    <div class="nav-item" id="nav-refresh" onclick="refreshData()" title="Refresh ข้อมูล"><span class="nav-ic">🔄</span><span class="nav-label">Refresh ข้อมูล</span></div>
+    <div class="nav-item" title="ตั้งค่า"><span class="nav-ic">⚙️</span><span class="nav-label">ตั้งค่า</span></div>
+
+    <div class="sidebar-block">
+      <div class="sidebar-photo" style="background-image:url('https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?auto=format&fit=crop&w=400&q=60');"></div>
+      <div class="updated-box"><span class="dot"></span><span id="updatedText">อัปเดตล่าสุด</span></div>
+      <div class="sidebar-footer"><div class="ic">🏆</div>"ทุกชั่วโมงของการทำงาน<br>คือคุณค่าที่สร้างอนาคต"</div>
+    </div>
+  </div>
+
+  <div class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="ซ่อน/แสดงเมนู">
+    <span id="sidebarToggleIcon">‹</span>
+  </div>
+
+  <script>
+    function toggleSidebar() {
+      const sb = document.getElementById('sidebar');
+      const btn = document.getElementById('sidebarToggle');
+      const collapsed = sb.classList.toggle('collapsed');
+      btn.classList.toggle('collapsed', collapsed);
+      document.getElementById('sidebarToggleIcon').textContent = collapsed ? '›' : '‹';
+      try { localStorage.setItem('dash_sidebar_collapsed', collapsed ? '1' : '0'); } catch (e) {}
+    }
+    (function restoreSidebarState() {
+      let collapsed = false;
+      try { collapsed = localStorage.getItem('dash_sidebar_collapsed') === '1'; } catch (e) {}
+      if (collapsed) {
+        document.getElementById('sidebar').classList.add('collapsed');
+        document.getElementById('sidebarToggle').classList.add('collapsed');
+        document.getElementById('sidebarToggleIcon').textContent = '›';
+      }
+    })();
+  </script>
+
+  <div class="main">
+    <div class="header-row" id="headerRow">
+      <div class="header-left" id="headerLeft">
+        <div class="header-logo">📖</div>
+        <div>
+          <div>
+            <h1>ข้อมูลการทำงานและเงินเดือน</h1>
+            <span class="header-tagline">🟠 Attendance &amp; Payroll Dashboard 🟠✨📈</span>
+          </div>
+          <p class="subtitle"></p>
+        </div>
+      </div>
+      <div class="header-right">
+        <span id="overviewControls" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <div class="range-box">
+            <span class="ic ic-box-blue">📅</span> <input type="month" id="monthPicker" onchange="applyFilter()">
+          </div>
+        </span>
+        <div class="range-box" id="exchangeRateBox">
+          <span class="ic ic-box-purple">💱</span> Exchange rate
+          <input type="number" id="exchangeRate" value="674.51" step="0.01" style="width:76px; border:none; border-left:1px solid var(--line); border-radius:0; padding:0 0 0 8px; background:transparent; color:var(--ink);" onchange="onExchangeRateChange()">
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-subpage-topbar" id="mobileSubpageTopbar">
+      <span class="msp-title" id="mspTitle">🗂️ ข้อมูลการทำงาน</span>
+    </div>
+
+    <div id="loading">กำลังโหลดข้อมูล...</div>
+
+    <div id="dashboardBody" style="display:none;">
+      <div class="stat-grid">
+        <div class="stat-card grad-blue">
+          <div class="icon">⏰</div>
+          <div class="label">เวลาทำงานรวม</div>
+          <div class="value" id="s-totalHrs">0 ชม.</div>
+          <div class="sub" id="s-avgHrs">คิดเป็น 100.0%</div>
+          <div class="bar-track"><div class="bar-fill" id="bar-totalHrs" style="width:100%;"></div></div>
+          <svg class="spark" id="spk-totalHrs" viewBox="0 0 100 26" preserveAspectRatio="none"></svg>
+        </div>
+        <div class="stat-card grad-green">
+          <div class="icon">📅</div>
+          <div class="label">วันทำงานทั้งหมด</div>
+          <div class="value" id="s-workDays">0 วัน</div>
+          <div class="sub" id="s-workPct">คิดเป็น 0%</div>
+          <div class="bar-track"><div class="bar-fill" id="bar-workDays" style="width:0%;"></div></div>
+          <svg class="spark" id="spk-workDays" viewBox="0 0 100 26" preserveAspectRatio="none"></svg>
+        </div>
+        <div class="stat-card grad-orange">
+          <div class="icon">🕓</div>
+          <div class="label">OT ทั้งหมด</div>
+          <div class="value" id="s-otHrs">0 ชม.</div>
+          <div class="sub" id="s-avgOt">เฉลี่ย/วัน 0.00 ชม.</div>
+          <div class="bar-track"><div class="bar-fill" id="bar-otHrs" style="width:0%;"></div></div>
+          <svg class="spark" id="spk-otHrs" viewBox="0 0 100 26" preserveAspectRatio="none"></svg>
+        </div>
+        <div class="stat-card grad-teal">
+          <div class="icon">🛌</div>
+          <div class="label">Day off</div>
+          <div class="value" id="s-dayOffDays">0 วัน</div>
+          <div class="sub" id="s-dayOffPct">0.00%</div>
+          <div class="bar-track"><div class="bar-fill" id="bar-dayOffDays" style="width:0%;"></div></div>
+        </div>
+        <div class="stat-card grad-pink">
+          <div class="icon">❌</div>
+          <div class="label">ขาดงาน</div>
+          <div class="value" id="s-absentDays">0 วัน</div>
+          <div class="sub" id="s-absentPct">0.00%</div>
+          <div class="bar-track"><div class="bar-fill" id="bar-absentDays" style="width:0%;"></div></div>
+          <svg class="spark" id="spk-absentDays" viewBox="0 0 100 26" preserveAspectRatio="none"></svg>
+        </div>
+        <div class="stat-card grad-purple">
+          <div class="icon">🌴</div>
+          <div class="label">Holiday</div>
+          <div class="value" id="s-holidayDays">0 วัน</div>
+          <div class="sub">0.00%</div>
+          <div class="bar-track"><div class="bar-fill" id="bar-holidayDays" style="width:0%;"></div></div>
+          <svg class="spark" id="spk-holidayDays" viewBox="0 0 100 26" preserveAspectRatio="none"></svg>
+        </div>
+        <div class="stat-card grad-yellow">
+          <div class="icon">⌚️</div>
+          <div class="label">Holiday OT</div>
+          <div class="value" id="s-holidayOtHrs">0 ชม.</div>
+          <div class="sub">0.00%</div>
+          <div class="bar-track"><div class="bar-fill" id="bar-holidayOtHrs" style="width:0%;"></div></div>
+          <svg class="spark" id="spk-holidayOtHrs" viewBox="0 0 100 26" preserveAspectRatio="none"></svg>
+        </div>
+        <div class="stat-card grad-sky">
+          <div class="icon">⛅️</div>
+          <div class="label">Working on holidays</div>
+          <div class="value" id="s-workHolidayDays">0 วัน</div>
+          <div class="sub" id="s-workHolidayRange">ทั้งหมด</div>
+          <div class="bar-track"><div class="bar-fill" id="bar-workHolidayDays" style="width:0%;"></div></div>
+          <svg class="spark" id="spk-workHolidayDays" viewBox="0 0 100 26" preserveAspectRatio="none"></svg>
+        </div>
+      </div>
+
+      <div class="content-grid">
+        <div class="card">
+          <div class="card-title">
+            <span class="t"><span class="ic ic-box-blue">📋</span>ตารางการมาทำงาน (รายวัน)</span>          </div>
+          <div id="tableWrap">
+            <table class="daily">
+              <thead>
+                <tr><th>วันที่</th><th>วัน</th><th>สถานะ</th><th>Shift</th><th>Hr/Day</th><th>OT</th><th>ชั่วโมงรวม</th></tr>
+              </thead>
+              <tbody id="dailyTbody"></tbody>
+            </table>
+            <div id="emptyState" style="display:none;">ไม่พบข้อมูลในช่วงที่เลือก</div>
+          </div>
+        </div>
+
+        <div class="mid-col">
+          <div class="card">
+            <div class="card-title"><span class="t"><span class="ic ic-box-blue">🧑🏼‍💻</span>สรุปการทำงาน (รายเดือน)</span><span class="pill">📅 <span id="donutMonthPill">เดือนนี้</span></span></div>
+            <div class="donut-wrap">
+              <div id="donutChart"></div>
+              <div class="donut-center"><div class="num" id="donutCenterNum">0</div><div class="lbl">วัน</div></div>
+            </div>
+            <div class="donut-legend" id="donutLegend"></div>
+          </div>
+          <div class="card">
+            <div class="card-title"><span class="t"><span class="ic ic-box-blue">📊</span>ชั่วโมงการทำงานรายสัปดาห์</span></div>
+            <div id="barChart"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span class="t"><span class="ic ic-box-purple">💵</span>สรุปเงินเดือน</span>
+            <span class="salary-tag">📅 <span id="salaryPeriodTag">ทั้งหมด</span></span>
+          </div>
+
+          <div class="sal-cols">
+            <span>รายการ</span>
+            <span style="display:flex; gap:16px;"><span style="width:70px; text-align:right;">฿</span><span style="width:104px; text-align:right;">Kip</span></span>
+          </div>
+
+          <div class="sal-section-title">🟩รายได้</div>
+          <div class="sal-row income"><span>เงินเดือนพื้นฐาน</span><span style="display:flex; gap:16px;"><span class="v b" id="m-base" style="width:70px;">0 ฿</span><span class="v" id="m-baseKip" style="width:104px;">0 ₭</span></span></div>
+          <div class="sal-row income"><span>OT</span><span style="display:flex; gap:16px;"><span class="v b" id="m-ot" style="width:70px;">0 ฿</span><span class="v" id="m-otKip" style="width:104px;">0 ₭</span></span></div>
+          <div class="sal-row income"><span>ค่าอาหาร</span><span style="display:flex; gap:16px;"><span class="v b" id="m-food" style="width:70px;">0 ฿</span><span class="v" id="m-foodKip" style="width:104px;">0 ₭</span></span></div>
+          <div class="sal-note" id="foodNote"></div>
+          <div class="sal-row income"><span>ค่ากะดึก</span><span style="display:flex; gap:16px;"><span class="v b" id="m-night" style="width:70px;">0 ฿</span><span class="v" id="m-nightKip" style="width:104px;">0 ₭</span></span></div>
+          <div class="sal-row income"><span>วันหยุดบริษัท</span><span style="display:flex; gap:16px;"><span class="v b" id="m-holiday" style="width:70px;">0 ฿</span><span class="v" id="m-holidayKip" style="width:104px;">0 ₭</span></span></div>
+          <div class="sal-row income"><span>ทำงานวันหยุด</span><span style="display:flex; gap:16px;"><span class="v b" id="m-workHoliday" style="width:70px;">0 ฿</span><span class="v" id="m-workHolidayKip" style="width:104px;">0 ₭</span></span></div>
+          <div class="sal-note" id="workHolidayRangeNote">นับจากช่วง ทั้งหมด</div>
+          <div class="sal-total"><span>💚รวมรายได้💚</span><span style="display:flex; gap:16px;"><span id="m-totalIncome" style="width:70px; text-align:right;">0 ฿</span><span id="m-totalIncomeKip" style="width:104px; text-align:right;">0 ₭</span></span></div>
+
+          <div class="sal-section-title">🟥รายการหัก</div>
+          <div class="sal-row deduct"><span>ภาษี</span><span style="display:flex; gap:16px;"><span class="v b" id="m-tax" style="width:70px;">0 ฿</span><span class="v" id="m-taxKip" style="width:104px;">0 ₭</span></span></div>
+          <div class="sal-row deduct"><span>ประกันสังคม</span><span style="display:flex; gap:16px;"><span class="v b" id="m-social" style="width:70px;">0 ฿</span><span class="v" id="m-socialKip" style="width:104px;">0 ₭</span></span></div>
+          <div class="sal-total"><span>💔รวมหัก💔</span><span style="display:flex; gap:16px;"><span id="m-totalDeduct" style="width:70px; text-align:right;">0 ฿</span><span id="m-totalDeductKip" style="width:104px; text-align:right;">0 ₭</span></span></div>
+
+          <div class="net-box">
+            <span class="lbl">✅เงินเดือนสุทธิ✅</span>
+            <span style="display:flex; gap:14px; align-items:baseline;">
+              <span class="amt" id="m-net">0 ฿</span>
+              <span style="font-size:13px; opacity:.9;" id="m-netKip">0 ₭</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <div class="card-title">
+          <span class="t"><span class="ic ic-box-blue">📅</span>สรุปการลา / Shift Day - Night</span>        </div>
+        <div class="leave-grid">
+          <div class="leave-card leave-green">
+            <div class="ic">🌴</div>
+            <div class="body">
+              <div class="top-row"><span class="title">ลาพักร้อน</span><span class="count" id="s-annualLeave">0 วัน</span></div>
+              <div class="en">Annual Leave</div>
+              <div class="note">ยังไม่ใช้สิทธิ์</div>
+            </div>
+          </div>
+          <div class="leave-card leave-yellow">
+            <div class="ic">👨🏻‍⚕️</div>
+            <div class="body">
+              <div class="top-row"><span class="title">ลาป่วย</span><span class="count" id="s-sickLeave">0 วัน</span></div>
+              <div class="en">Sick Leave</div>
+              <div class="note">ยังไม่ใช้สิทธิ์</div>
+            </div>
+          </div>
+          <div class="leave-card leave-blue">
+            <div class="ic">🏌️</div>
+            <div class="body">
+              <div class="top-row"><span class="title">ลากิจ</span><span class="count" id="s-vacationLeave">0 วัน</span></div>
+              <div class="en">Vacation Leave</div>
+              <div class="note">ยังไม่ใช้สิทธิ์</div>
+            </div>
+          </div>
+          <div class="leave-card leave-orange">
+            <div class="ic">☀️</div>
+            <div class="body">
+              <div class="top-row"><span class="title">ลางานวัน</span><span class="count" id="s-dayShift">0 วัน</span></div>
+              <div class="en">Day Shift</div>
+              <div class="note">ยังไม่ใช้สิทธิ์</div>
+            </div>
+          </div>
+          <div class="leave-card leave-purple">
+            <div class="ic">🌙</div>
+            <div class="body">
+              <div class="top-row"><span class="title">ลางานกลางคืน</span><span class="count" id="s-nightShift">0 วัน</span></div>
+              <div class="en">Night Shift</div>
+              <div class="note">ยังไม่ใช้สิทธิ์</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= หน้า: ข้อมูลการทำงาน (รายเดือน/รายปี) ================= -->
+    <div id="page-workdata" class="page" style="display:none;">
+      <div class="page-toolbar">
+        <div class="left-group">
+          <div class="seg-toggle" id="workdataModeToggle">
+            <button type="button" class="active" data-mode="month" onclick="setWorkdataMode('month')">รายเดือน</button>
+            <button type="button" data-mode="year" onclick="setWorkdataMode('year')">รายปี</button>
+          </div>
+          <div class="range-box">
+            <span class="ic ic-box-blue">📅</span>
+            <select id="workdataYearSelect" onchange="renderWorkdataPage()"></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="page-summary-grid" id="workdataSummaryGrid"></div>
+
+      <div class="card big-chart-card">
+        <div class="card-title">
+          <span class="t"><span class="ic ic-box-blue">📈</span>กราฟข้อมูลการทำงาน</span>
+          <span class="pill" id="workdataChartPill">📅 ทั้งหมด</span>
+        </div>
+        <div id="workdataChart"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <span class="t"><span class="ic ic-box-blue">🗂️</span>ประวัติการทำงานรายเดือน</span>
+          <span class="pill" id="workdataPeriodPill">📅 ทั้งหมด</span>
+        </div>
+        <div class="monthly-table-wrap">
+          <table class="monthly">
+            <thead>
+              <tr><th>เดือน</th><th>วันทำงาน</th><th>ขาดงาน</th><th>ลาพักร้อน</th><th>ลาป่วย</th><th>OT (ชม.)</th><th>ชั่วโมงรวม</th></tr>
+            </thead>
+            <tbody id="workdataTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= หน้า: สรุปเงินเดือน (กราฟรายเดือน/รายปี) ================= -->
+    <div id="page-salary" class="page" style="display:none;">
+      <div class="page-toolbar">
+        <div class="left-group">
+          <div class="seg-toggle" id="salaryModeToggle">
+            <button type="button" class="active" data-mode="month" onclick="setSalaryMode('month')">รายเดือน</button>
+            <button type="button" data-mode="year" onclick="setSalaryMode('year')">รายปี</button>
+          </div>
+          <div class="range-box">
+            <span class="ic ic-box-blue">📅</span>
+            <select id="salaryYearSelect" onchange="renderSalaryPage()"></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="page-summary-grid" id="salarySummaryGrid"></div>
+
+      <div class="content-grid" style="grid-template-columns: 1.7fr 1fr; margin-bottom:16px;">
+        <div class="card big-chart-card salary-chart-card">
+          <div class="card-title">
+            <span class="t"><span class="ic ic-box-purple">📈</span>กราฟเงินเดือนสุทธิ</span>
+            <span class="pill" id="salaryPeriodPill">📅 ทั้งหมด</span>
+          </div>
+          <div id="salaryChart"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="t"><span class="ic ic-box-blue">💵</span>สัดส่วนรายได้-หัก-สุทธิ</span></div>
+          <div class="donut-wrap">
+            <div id="salaryDonutChart"></div>
+            <div class="donut-center"><div class="num" id="salaryDonutCenterNum" style="font-size:15px;">0 ฿</div><div class="lbl">รายได้รวม</div></div>
+          </div>
+          <div class="donut-legend" id="salaryDonutLegend"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= หน้า: ประวัติการทำงาน (กราฟรายเดือน/รายปี) ================= -->
+    <div id="page-history" class="page" style="display:none;">
+      <div class="page-toolbar">
+        <div class="left-group">
+          <div class="range-box">
+            <span class="ic ic-box-blue">📅</span>
+            <select id="historyYearSelect" onchange="renderHistoryPage()"></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="page-summary-grid" id="historySummaryGrid"></div>
+
+      <div class="card big-chart-card">
+        <div class="card-title">
+          <span class="t"><span class="ic ic-box-green">📊</span>กราฟชั่วโมง/วันทำงาน</span>
+          <span class="pill" id="historyPeriodPill">📅 ทั้งหมด</span>
+        </div>
+        <div id="historyChartWrap" style="position:relative; width:100%;">
+          <canvas id="historyChart"></canvas>
+        </div>
+        <div class="seg-toggle" id="historyModeToggle">
+          <button type="button" class="active" data-mode="month" onclick="setHistoryMode('month')">รายเดือน</button>
+          <button type="button" data-mode="year" onclick="setHistoryMode('year')">รายปี</button>
+          <button type="button" data-mode="recent" onclick="setHistoryMode('recent')">ย้อนหลัง</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <a class="mobile-fab" id="mobileFab" href="#" title="เพิ่มข้อมูล">➕</a>
+
+  <!-- ================= แถบนำทางสำหรับมือถือ ================= -->
+  <nav class="mobile-bottom-nav" id="mobileBottomNav">
+    <div class="mbn-row">
+      <button type="button" class="mbn-item active" id="mbn-overview" onclick="switchPage('overview')">
+        <span class="mbn-ic">📊</span><span>ภาพรวม</span>
+      </button>
+      <button type="button" class="mbn-item" id="mbn-workdata" onclick="switchPage('workdata')">
+        <span class="mbn-ic">🗂️</span><span>ข้อมูล</span>
+      </button>
+      <a class="mbn-item mbn-add" id="mobileNavAdd" href="#" title="เพิ่มข้อมูล">
+        <span class="mbn-ic">➕</span><span>เพิ่ม</span>
+      </a>
+      <button type="button" class="mbn-item" id="mbn-salary" onclick="switchPage('salary')">
+        <span class="mbn-ic">💰</span><span>เงินเดือน</span>
+      </button>
+      <button type="button" class="mbn-item" id="mbn-history" onclick="switchPage('history')">
+        <span class="mbn-ic">🕒</span><span>ประวัติ</span>
+      </button>
+    </div>
+  </nav>
+
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
+  <script>
+    /* ---------- แผนที่รูปโปรไฟล์รายพนักงาน ----------
+       ใส่ชื่อพนักงาน (ต้องตรงกับค่าในชีตข้อมูลเป๊ะๆ) เป็น key
+       และ URL รูปภาพ (หรือ base64 data URI) เป็น value
+       ถ้าไม่พบชื่อใน map นี้ จะกลับไปแสดงเป็นตัวอักษรย่อเหมือนเดิม */
+    const EMPLOYEE_PHOTOS = {
+      'Sengchalern Deevanna': 'https://drive.google.com/file/d/1DZRCcgrGGn950_7-DzTqpZrPw2llp28B/view?usp=drive_link'
+    };
+
+    // แปลงลิงก์แชร์ของ Google Drive (…/file/d/ID/view หรือ ?id=ID) เป็นลิงก์รูปที่แสดงในหน้าเว็บได้
+    function toDisplayablePhotoUrl(url) {
+      if (!url) return '';
+      const m = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=\w+&)?id=)([\w-]+)/);
+      return m ? 'https://lh3.googleusercontent.com/d/' + m[1] + '=w200-h200' : url;
+    }
+
+    function forceFullReflow() {
+  const body = document.body;
+  const prevDisplay = body.style.display;
+  body.style.display = 'none';
+  void body.offsetHeight; // บังคับให้ browser อ่านค่าจริง เพื่อ trigger reflow
+  body.style.display = prevDisplay || 'flex';
+}
+
+// รอให้ฟอนต์โหลดเสร็จสมบูรณ์ก่อน แล้วค่อยบังคับ reflow
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(function () {
+    requestAnimationFrame(function () {
+      forceFullReflow();
+    });
+  });
+}
+    let allRows = [];
+    let currentEmployee = '';
+
+    google.charts.load('current', { packages: ['corechart'] });
+    google.charts.setOnLoadCallback(fetchData);
+
+    google.script.run.withSuccessHandler(function (urls) {
+      document.getElementById('addLink').href = urls.entry;
+      document.getElementById('mobileFab').href = urls.entry;
+      document.getElementById('mobileNavAdd').href = urls.entry;
+    }).getPageUrls();
+
+    function setUpdatedText() {
+      const now = new Date();
+      const pad = function (n) { return ('0' + n).slice(-2); };
+      document.getElementById('updatedText').innerText =
+        'อัปเดตล่าสุด ' + pad(now.getDate()) + '/' + pad(now.getMonth() + 1) + '/' + now.getFullYear() +
+        ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+    }
+    setUpdatedText();
+
+    /* ---------- ปุ่ม Refresh ข้อมูล (Sidebar) ----------
+       กดเพื่อดึงข้อมูลล่าสุดจาก Google Sheet (เรียก Apps Script 1 ครั้งต่อการกด)
+       วาดหน้าจอใหม่โดยคงพนักงาน/เดือน/หน้าที่เลือกไว้ */
+    let lastDataSignature = '';
+    let refreshBusy = false;
+
+    function setRefreshBusy(busy) {
+      refreshBusy = busy;
+      const btn = document.getElementById('nav-refresh');
+      if (!btn) return;
+      btn.classList.toggle('refreshing', busy);
+      btn.querySelector('.nav-label').innerText = busy ? 'กำลังโหลด...' : 'Refresh ข้อมูล';
+    }
+
+    function refreshData() {
+      if (refreshBusy) return;
+      setRefreshBusy(true);
+      google.script.run
+        .withSuccessHandler(function (result) {
+          setRefreshBusy(false);
+          setUpdatedText();
+          const sig = JSON.stringify(result);
+          if (sig === lastDataSignature) return;
+          lastDataSignature = sig;
+
+          const picker = document.getElementById('monthPicker');
+          const oldDefault = computeDefaultMonthFromRows(getRowsForCurrentEmployee());
+
+          allRows = result.rows;
+          refreshEmployeeOptions(result.names);
+
+          // ถ้าผู้ใช้ยังดูรอบล่าสุดอยู่ แล้วมีข้อมูลขึ้นรอบใหม่ ให้เลื่อนไปรอบใหม่ให้อัตโนมัติ
+          if (picker.value === oldDefault) {
+            picker.value = computeDefaultMonthFromRows(getRowsForCurrentEmployee());
+          }
+          refreshCurrentView();
+        })
+        .withFailureHandler(function (err) {
+          setRefreshBusy(false);
+          alert('โหลดข้อมูลไม่สำเร็จ: ' + (err && err.message ? err.message : err));
+        })
+        .getReportData();
+    }
+
+    function refreshEmployeeOptions(names) {
+      if (names.indexOf(currentEmployee) === -1) {
+        currentEmployee = names.length ? names[0] : '';
+        updateProfile();
+      }
+    }
+
+    function fetchData() {
+  google.script.run
+    .withSuccessHandler(function (result) {
+      allRows = result.rows;
+      lastDataSignature = JSON.stringify(result);
+      setupEmployeeSelect(result.names);
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('dashboardBody').style.display = 'block';
+
+      const base = getRowsForCurrentEmployee();
+      const defaultMonth = computeDefaultMonthFromRows(base);
+      document.getElementById('monthPicker').value = defaultMonth;
+      applyFilter();
+
+      // ✅ เพิ่มตรงนี้: บังคับให้เบราว์เซอร์/iframe คำนวณ layout ใหม่
+      // แก้ปัญหา GAS sandbox iframe คำนวณขนาดครั้งแรกผิดพลาด
+      setTimeout(function () {
+        window.dispatchEvent(new Event('resize'));
+      }, 100);
+      requestAnimationFrame(function () {
+        window.dispatchEvent(new Event('resize'));
+      });
+    })
+    .withFailureHandler(function (err) {
+      document.getElementById('loading').innerText = 'เกิดข้อผิดพลาด: ' + err.message;
+    })
+    .getReportData();
+}
+
+    // ไม่มีช่องเลือกพนักงานแล้ว: แสดงข้อมูลของพนักงานคนแรกในชีตเสมอ
+    function setupEmployeeSelect(names) {
+      currentEmployee = names.length ? names[0] : '';
+      updateProfile();
+    }
+
+    function refreshCurrentView() {
+      applyFilter();
+      if (currentPage === 'workdata') renderWorkdataPage();
+      else if (currentPage === 'salary') renderSalaryPage();
+      else if (currentPage === 'history') renderHistoryPage();
+      updateMobileSubpageLabel();
+    }
+
+    /* ---------- รูปโปรไฟล์ ----------
+       กดที่รูป/ตัวอักษรใน Sidebar เพื่อเลือกรูปจากเครื่อง
+       รูปจะถูกย่อเหลือ 200x200 แล้วเก็บไว้ในเบราว์เซอร์นี้ (localStorage)
+       ถ้ายังไม่ได้อัปโหลด จะใช้ URL จาก EMPLOYEE_PHOTOS ด้านบน หรือแสดงตัวอักษรย่อ */
+    const PHOTO_STORAGE_PREFIX = 'dash_profile_photo_';
+
+    function getStoredPhoto() {
+      try { return localStorage.getItem(PHOTO_STORAGE_PREFIX + currentEmployee) || ''; } catch (e) { return ''; }
+    }
+
+    function updateProfile() {
+      const name = currentEmployee || 'พนักงาน';
+      document.getElementById('sideName').innerText = name;
+      const avatarEl = document.getElementById('avatarInitial');
+      const stored = getStoredPhoto();
+      const photoUrl = stored || toDisplayablePhotoUrl(EMPLOYEE_PHOTOS[currentEmployee]);
+      if (photoUrl) {
+        avatarEl.style.backgroundImage = "url('" + photoUrl + "')";
+        avatarEl.innerText = '';
+      } else {
+        avatarEl.style.backgroundImage = '';
+        avatarEl.innerText = name.charAt(0).toUpperCase() || 'S';
+      }
+      document.getElementById('avatarRemove').style.display = stored ? 'flex' : 'none';
+    }
+
+    function onProfilePhotoSelected(input) {
+      const file = input.files && input.files[0];
+      input.value = '';
+      if (!file || !/^image\//.test(file.type)) return;
+      const reader = new FileReader();
+      reader.onload = function () {
+        const img = new Image();
+        img.onload = function () {
+          const size = 200;
+          const canvas = document.createElement('canvas');
+          canvas.width = size; canvas.height = size;
+          const side = Math.min(img.width, img.height);
+          canvas.getContext('2d').drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, size, size);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          try {
+            localStorage.setItem(PHOTO_STORAGE_PREFIX + currentEmployee, dataUrl);
+          } catch (e) {
+            alert('บันทึกรูปไม่สำเร็จ (เบราว์เซอร์ไม่อนุญาตให้เก็บข้อมูล)');
+          }
+          updateProfile();
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removeProfilePhoto(ev) {
+      ev.stopPropagation();
+      if (!confirm('ลบรูปโปรไฟล์?')) return;
+      try { localStorage.removeItem(PHOTO_STORAGE_PREFIX + currentEmployee); } catch (e) {}
+      updateProfile();
+    }
+
+    function getRowsForCurrentEmployee() {
+      if (!currentEmployee) return allRows;
+      return allRows.filter(function (r) { return r.name === currentEmployee; });
+    }
+
+    function norm(s) { return (s || '').toString().trim().toLowerCase(); }
+
+    const HOUR_DAY_TYPES = ['normal working day', 'sick leave', 'holiday', 'working on holidays', 'annual leave'];
+    const ABSENT_TYPES = ['missing work'];
+
+    const LEAVE_COLORS = {
+      'normal working day':  { bg: 'rgba(45,212,196,.16)', fg: '#5eead4' },
+      'day off':             { bg: 'rgba(251,191,36,.16)', fg: '#fbbf24' },
+      'annual leave':        { bg: 'rgba(52,217,127,.16)', fg: '#4ade80' },
+      'sick leave':          { bg: 'rgba(250,204,21,.16)', fg: '#fde047' },
+      'missing work':        { bg: 'rgba(248,113,113,.18)', fg: '#f87171' },
+      'holiday':             { bg: 'rgba(45,212,196,.16)', fg: '#5eead4' },
+      'vacation leave':      { bg: 'rgba(251,191,36,.16)', fg: '#fbbf24' },
+      'working on holidays': { bg: 'rgba(56,189,248,.16)', fg: '#7dd3fc' }
+    };
+
+    function hrPerDay(leaveType) {
+      return HOUR_DAY_TYPES.indexOf(norm(leaveType)) > -1 ? 8 : 0;
+    }
+
+    function hoursForRow(r) {
+      return hrPerDay(r.leaveType) + (Number(r.ot) || 0);
+    }
+
+    function computeSummary(rows) {
+      let workDays = 0, absentDays = 0, holidayCount = 0, holidayOtHrs = 0, nightShiftDays = 0, dayShiftDays = 0;
+      let normalWorkingDay = 0, annualLeave = 0, sickLeave = 0, vacationLeave = 0, workingOnHolidaysCount = 0, dayOffCount = 0;
+      let totalOt = 0;
+      rows.forEach(function (r) {
+        const base = hrPerDay(r.leaveType);
+        const ot = Number(r.ot) || 0;
+        const lt = norm(r.leaveType);
+        totalOt += ot;
+        if (base === 8) workDays++;
+        if (lt === 'missing work') absentDays++;
+        if (lt === 'holiday') { holidayCount++; holidayOtHrs += ot; }
+        if (lt === 'normal working day') normalWorkingDay++;
+        if (lt === 'annual leave') annualLeave++;
+        if (lt === 'sick leave') sickLeave++;
+        if (lt === 'vacation leave') vacationLeave++;
+        if (lt === 'working on holidays') workingOnHolidaysCount++;
+        if (lt === 'day off') dayOffCount++;
+        const sh = norm(r.shift);
+        if (sh === 'night') nightShiftDays++;
+        else if (sh === 'day') dayShiftDays++;
+      });
+      const otHrs = totalOt - holidayOtHrs;
+      const totalHrs = (workDays * 8) + otHrs + holidayOtHrs;
+      const total = rows.length || 1;
+      return {
+        totalHrs: totalHrs, workDays: workDays, otHrs: otHrs, absentDays: absentDays,
+        holidayCount: holidayCount, holidayOtHrs: holidayOtHrs,
+        nightShiftDays: nightShiftDays, dayShiftDays: dayShiftDays,
+        normalWorkingDay: normalWorkingDay, annualLeave: annualLeave, sickLeave: sickLeave, vacationLeave: vacationLeave,
+        workingOnHolidaysCount: workingOnHolidaysCount,
+        dayOffCount: dayOffCount,
+        vacationPrevCount: 0,
+        cycleDays: 0,
+        workPct: (workDays / total * 100), absentPct: (absentDays / total * 100),
+        avgHrs: rows.length ? (totalHrs / rows.length) : 0,
+        avgOt: rows.length ? (otHrs / rows.length) : 0
+      };
+    }
+
+    function countWorkingOnHolidays(rows) {
+      return rows.filter(function (r) { return norm(r.leaveType) === 'working on holidays'; }).length;
+    }
+
+    function renderAll(rows, holidayRows, cycleDays) {
+      const s = computeSummary(rows);
+      s.vacationPrevCount = countWorkingOnHolidays(holidayRows || rows);
+      s.cycleDays = cycleDays || 0;
+      renderStats(s, rows.length);
+      renderTable(rows);
+      renderDonut(s, rows.length);
+      renderWeeklyBar(rows);
+      renderSalary(s);
+      renderSparklines(rows);
+    }
+
+    function setTxt(id, txt) { document.getElementById(id).innerText = txt; }
+
+    function setBar(id, pct) {
+      const el = document.getElementById(id);
+      if (el) el.style.width = Math.max(0, Math.min(100, pct)) + '%';
+    }
+
+    function renderStats(s, totalRows) {
+      const total = totalRows || 1;
+      setTxt('s-totalHrs', Math.round(s.totalHrs) + ' ชม.');
+      setTxt('s-avgHrs', 'คิดเป็น ' + (s.totalHrs ? '100.0' : '0.0') + '%');
+      setTxt('s-workDays', s.workDays + ' วัน');
+      setTxt('s-workPct', 'คิดเป็น ' + s.workPct.toFixed(0) + '%');
+      setTxt('s-otHrs', Math.round(s.otHrs) + ' ชม.');
+      setTxt('s-avgOt', 'เฉลี่ย/วัน ' + s.avgOt.toFixed(2) + ' ชม.');
+      setTxt('s-dayOffDays', s.dayOffCount + ' วัน');
+      setTxt('s-dayOffPct', (s.dayOffCount / total * 100).toFixed(2) + '%');
+      setBar('bar-dayOffDays', s.dayOffCount / total * 100);
+      setTxt('s-absentDays', s.absentDays + ' วัน');
+      setTxt('s-absentPct', s.absentPct.toFixed(2) + '%');
+      setTxt('s-holidayDays', s.holidayCount + ' วัน');
+      setTxt('s-holidayOtHrs', Math.round(s.holidayOtHrs) + ' ชม.');
+      setTxt('s-workHolidayDays', s.vacationPrevCount + ' วัน');
+      setTxt('s-workHolidayRange', currentHolidayCycleLabel);
+      setTxt('s-annualLeave', s.annualLeave + ' วัน');
+      setTxt('s-sickLeave', s.sickLeave + ' วัน');
+      setTxt('s-vacationLeave', s.vacationLeave + ' วัน');
+      setTxt('s-dayShift', s.dayShiftDays + ' วัน');
+      setTxt('s-nightShift', s.nightShiftDays + ' วัน');
+
+      setBar('bar-totalHrs', s.totalHrs ? 100 : 0);
+      setBar('bar-workDays', s.workPct);
+      setBar('bar-otHrs', total ? (s.otHrs / (total * 8) * 100) : 0);
+      setBar('bar-absentDays', s.absentPct);
+      setBar('bar-holidayDays', total ? (s.holidayCount / total * 100) : 0);
+      setBar('bar-holidayOtHrs', total ? (s.holidayOtHrs / (total * 4) * 100) : 0);
+      setBar('bar-workHolidayDays', total ? (s.vacationPrevCount / total * 100) : 0);
+
+    }
+
+    function badgeFor(leaveType) {
+      const key = norm(leaveType);
+      const c = LEAVE_COLORS[key] || { bg: 'rgba(255,255,255,.08)', fg: '#c6c9db' };
+      const label = leaveType || '-';
+      return '<span class="badge" style="background:' + c.bg + ';color:' + c.fg + ';">' + label + '</span>';
+    }
+
+    function renderTable(rows) {
+      const tbody = document.getElementById('dailyTbody');
+      tbody.innerHTML = '';
+      if (!rows.length) {
+        document.getElementById('emptyState').style.display = 'block';
+        return;
+      }
+      document.getElementById('emptyState').style.display = 'none';
+      rows.slice().reverse().forEach(function (r) {
+        const base = hrPerDay(r.leaveType);
+        const ot = Number(r.ot) || 0;
+        const otStyle = ot < 4 ? ' style="color:#ff5722;font-weight:700;"' : '';
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' + r.dateDisplay + '</td>' +
+          '<td>' + (r.dayOfWeek || '') + '</td>' +
+          '<td>' + badgeFor(r.leaveType) + '</td>' +
+          '<td>' + (r.shift || '-') + '</td>' +
+          '<td>' + base + ' Hr/Day</td>' +
+          '<td' + otStyle + '>' + ot + ' ชม.</td>' +
+          '<td>' + (base + ot) + ' ชม.</td>';
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderDonut(s, totalRows) {
+      const leaveDays = totalRows - s.workDays - s.absentDays;
+      const data = google.visualization.arrayToDataTable([
+        ['สถานะ', 'จำนวน'],
+        ['มาทำงาน', s.workDays],
+        ['ลา/หยุด', Math.max(leaveDays, 0)],
+        ['ขาดงาน', s.absentDays]
+      ]);
+      const options = {
+        pieHole: 0.68,
+        colors: ['#34d97f', '#fbbf24', '#f87171'],
+        legend: 'none',
+        chartArea: { width: '100%', height: '100%' },
+        pieSliceText: 'none',
+        backgroundColor: 'transparent',
+        pieSliceBorderColor: 'transparent'
+      };
+      const chart = new google.visualization.PieChart(document.getElementById('donutChart'));
+      chart.draw(data, options);
+
+      document.getElementById('donutCenterNum').innerText = s.workDays;
+
+      const pct = totalRows ? Math.round(s.workDays / totalRows * 100) : 0;
+      document.getElementById('donutLegend').innerHTML =
+        '<div class="row"><span class="k"><span class="dot" style="background:#34d97f;"></span>มาทำงาน</span><span class="v">' + s.workDays + ' วัน</span></div>' +
+        '<div class="row"><span class="k"><span class="dot" style="background:#fbbf24;"></span>ลา/หยุด</span><span class="v">' + Math.max(leaveDays, 0) + ' วัน</span></div>' +
+        '<div class="row"><span class="k"><span class="dot" style="background:#f87171;"></span>ขาดงาน</span><span class="v">' + s.absentDays + ' วัน</span></div>' +
+        '<div class="rate"><span>อัตราการมาทำงาน</span><span class="v">' + pct + '%</span></div>';
+    }
+
+    function renderWeeklyBar(rows) {
+      if (!rows.length) {
+        document.getElementById('barChart').innerHTML = '';
+        return;
+      }
+      const weeks = [];
+      for (let i = 0; i < rows.length; i += 7) {
+        const chunk = rows.slice(i, i + 7);
+        const label = chunk[0].dateDisplay.slice(0, 5) + '-' + chunk[chunk.length - 1].dateDisplay.slice(0, 2);
+        const totalH = chunk.reduce(function (sum, r) { return sum + hoursForRow(r); }, 0);
+        weeks.push([label, totalH, totalH]);
+      }
+      const data = new google.visualization.DataTable();
+      data.addColumn('string', 'สัปดาห์');
+      data.addColumn('number', 'ชั่วโมง');
+      data.addColumn({ type: 'number', role: 'annotation' });
+      data.addRows(weeks);
+
+      const options = {
+        legend: 'none',
+        colors: ['#6a63f5'],
+        chartArea: { width: '88%', height: '68%', top: 20 },
+        backgroundColor: 'transparent',
+        hAxis: { textStyle: { fontSize: 10, color: '#8b90a6' }, baselineColor: '#2a2e40', gridlines: { color: 'transparent' } },
+        vAxis: { textStyle: { fontSize: 10, color: '#8b90a6' }, minValue: 0, gridlines: { color: '#232739' }, baselineColor: '#2a2e40' },
+        annotations: { alwaysOutside: false, textStyle: { color: '#f3f4f9', fontSize: 11, bold: true }, stem: { color: 'transparent' } },
+        bar: { groupWidth: '55%' }
+      };
+      const chart = new google.visualization.ColumnChart(document.getElementById('barChart'));
+      chart.draw(data, options);
+    }
+
+    function sparkPathFor(id, values, color) {
+      const svg = document.getElementById(id);
+      if (!svg) return;
+      svg.innerHTML = '';
+      if (!values.length) return;
+      const w = 100, h = 26, pad = 2;
+      const max = Math.max.apply(null, values);
+      const min = Math.min.apply(null, values);
+      const range = (max - min) || 1;
+      const step = values.length > 1 ? (w - pad * 2) / (values.length - 1) : 0;
+      let d = '';
+      let area = '';
+      values.forEach(function (v, i) {
+        const x = pad + i * step;
+        const y = h - pad - ((v - min) / range) * (h - pad * 2);
+        d += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
+        area += (i === 0 ? 'M' + x.toFixed(1) + ',' + (h - 1) + ' L' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
+      });
+      area += 'L' + (pad + (values.length - 1) * step).toFixed(1) + ',' + (h - 1) + ' Z';
+
+      const gradId = id + '-grad';
+      const ns = 'http://www.w3.org/2000/svg';
+      const defs = document.createElementNS(ns, 'defs');
+      defs.innerHTML = '<linearGradient id="' + gradId + '" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" stop-color="' + color + '" stop-opacity="0.35"/>' +
+        '<stop offset="100%" stop-color="' + color + '" stop-opacity="0"/></linearGradient>';
+      svg.appendChild(defs);
+
+      const areaPath = document.createElementNS(ns, 'path');
+      areaPath.setAttribute('d', area);
+      areaPath.setAttribute('fill', 'url(#' + gradId + ')');
+      svg.appendChild(areaPath);
+
+      const linePath = document.createElementNS(ns, 'path');
+      linePath.setAttribute('d', d.trim());
+      linePath.setAttribute('fill', 'none');
+      linePath.setAttribute('stroke', color);
+      linePath.setAttribute('stroke-width', '1.8');
+      linePath.setAttribute('stroke-linecap', 'round');
+      linePath.setAttribute('stroke-linejoin', 'round');
+      svg.appendChild(linePath);
+    }
+
+    function renderSparklines(rows) {
+      const seq = rows.slice(-14);
+      if (!seq.length) {
+        ['spk-totalHrs','spk-workDays','spk-otHrs','spk-absentDays','spk-holidayDays','spk-holidayOtHrs','spk-workHolidayDays']
+          .forEach(function (id) { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
+        return;
+      }
+      let cumHrs = 0, cumWork = 0, cumAbsent = 0, cumHoliday = 0, cumWorkHoliday = 0;
+      const totalHrsSeries = [], workDaysSeries = [], otSeries = [], absentSeries = [], holidaySeries = [], holidayOtSeries = [], workHolidaySeries = [];
+      seq.forEach(function (r) {
+        const base = hrPerDay(r.leaveType);
+        const ot = Number(r.ot) || 0;
+        const lt = norm(r.leaveType);
+        cumHrs += base + ot; totalHrsSeries.push(cumHrs);
+        if (base === 8) cumWork++; workDaysSeries.push(cumWork);
+        otSeries.push(ot);
+        if (lt === 'missing work') cumAbsent++; absentSeries.push(cumAbsent);
+        if (lt === 'holiday') cumHoliday++; holidaySeries.push(cumHoliday);
+        holidayOtSeries.push(lt === 'holiday' ? ot : 0);
+        if (lt === 'working on holidays') cumWorkHoliday++; workHolidaySeries.push(cumWorkHoliday);
+      });
+      sparkPathFor('spk-totalHrs', totalHrsSeries, '#8f89fb');
+      sparkPathFor('spk-workDays', workDaysSeries, '#34d97f');
+      sparkPathFor('spk-otHrs', otSeries, '#fbbf24');
+      sparkPathFor('spk-absentDays', absentSeries, '#f87171');
+      sparkPathFor('spk-holidayDays', holidaySeries, '#34d97f');
+      sparkPathFor('spk-holidayOtHrs', holidayOtSeries, '#fde047');
+      sparkPathFor('spk-workHolidayDays', workHolidaySeries, '#7dd3fc');
+    }
+
+    let lastSummary = null;
+
+    /* ---------- ค่าอาหาร ----------
+       ปกติ = 60 บาท x จำนวนวันที่มาทำงาน (กะวัน + กะดึก)
+       ถ้ามาทำงานครบตามเกณฑ์ ให้จ่ายเต็มเดือน:
+         - รอบที่มี 31 วัน มาทำงาน >= 27 วัน -> 60 x 31
+         - รอบที่มี 30 วัน มาทำงาน >= 26 วัน -> 60 x 30
+         (เกณฑ์ = จำนวนวันในรอบ - 4  เช่น ก.พ. 28 วัน มาทำงาน >= 24 -> 60 x 28)
+       จำนวนวันในรอบ = รอบวันที่ 21 ของเดือนก่อน ถึงวันที่ 20 ของเดือนที่เลือก */
+    const FOOD_RATE = 60;
+    const FOOD_FULL_MONTH_ALLOWANCE = 4;
+
+    function calcFood(s) {
+      const workedDays = s.dayShiftDays + s.nightShiftDays;
+      const cycleDays = s.cycleDays || 0;
+      const fullMonth = cycleDays > 0 && workedDays >= cycleDays - FOOD_FULL_MONTH_ALLOWANCE;
+      const foodDays = fullMonth ? cycleDays : workedDays;
+      return { workedDays: workedDays, cycleDays: cycleDays, fullMonth: fullMonth, foodDays: foodDays, baht: foodDays * FOOD_RATE };
+    }
+
+    function calcSalary(s, rate) {
+      const workingDaysCount = s.normalWorkingDay + s.annualLeave + s.sickLeave + s.workingOnHolidaysCount;
+      const workingHoursBaht = workingDaysCount * 238;
+
+      const otBaht = 44.625 * s.otHrs;
+      const food = calcFood(s);
+      const foodCostBaht = food.baht;
+      const nightShiftBaht = (0.15 * 238) * s.nightShiftDays;
+      const companyHolidayBaht = (595 * s.holidayCount) + (89.25 * s.holidayOtHrs);
+      const workHolidayBaht = 145 * s.vacationPrevCount;
+
+      const totalIncome = workingHoursBaht + otBaht + foodCostBaht + nightShiftBaht + companyHolidayBaht + workHolidayBaht;
+      const totalIncomeKip = totalIncome * rate;
+
+      let taxKip = 0;
+      if (totalIncomeKip <= 2500000) {
+        taxKip = 0;
+      } else if (totalIncomeKip <= 5000000) {
+        taxKip = (totalIncomeKip - 2500000) * 0.05;
+      } else if (totalIncomeKip <= 15000000) {
+        taxKip = (totalIncomeKip - 5000000) * 0.10 + 125000;
+      } else if (totalIncomeKip <= 25000000) {
+        taxKip = (totalIncomeKip - 15000000) * 0.15 + 1125000;
+      } else {
+        taxKip = 0;
+      }
+
+      const rawTaxBaht = rate ? taxKip / rate : 0;
+      const rawSocialBaht = workingHoursBaht * 0.055;
+
+      const taxBaht = Math.round(rawTaxBaht);
+      const socialBaht = Math.round(rawSocialBaht);
+
+      const totalDeduct = taxBaht + socialBaht;
+      const net = totalIncome - totalDeduct;
+
+      return {
+        workingHoursBaht: workingHoursBaht, otBaht: otBaht, foodCostBaht: foodCostBaht, food: food,
+        nightShiftBaht: nightShiftBaht, companyHolidayBaht: companyHolidayBaht, workHolidayBaht: workHolidayBaht,
+        totalIncome: totalIncome, taxKip: taxKip, taxBaht: taxBaht, socialBaht: socialBaht,
+        totalDeduct: totalDeduct, net: net
+      };
+    }
+
+    function renderSalary(s) {
+      lastSummary = s;
+
+      const rate = parseFloat(document.getElementById('exchangeRate').value) || 0;
+      const sal = calcSalary(s, rate);
+
+      const fmtB = function (n) { return Math.round(n).toLocaleString('en-US') + ' ฿'; };
+      const fmtK = function (n) { return (n * rate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₭'; };
+
+      setTxt('m-base', fmtB(sal.workingHoursBaht));       setTxt('m-baseKip', fmtK(sal.workingHoursBaht));
+      setTxt('m-ot', fmtB(sal.otBaht));                    setTxt('m-otKip', fmtK(sal.otBaht));
+      setTxt('m-food', fmtB(sal.foodCostBaht));             setTxt('m-foodKip', fmtK(sal.foodCostBaht));
+      setTxt('m-night', fmtB(sal.nightShiftBaht));          setTxt('m-nightKip', fmtK(sal.nightShiftBaht));
+      setTxt('m-holiday', fmtB(sal.companyHolidayBaht));    setTxt('m-holidayKip', fmtK(sal.companyHolidayBaht));
+      setTxt('m-workHoliday', fmtB(sal.workHolidayBaht));   setTxt('m-workHolidayKip', fmtK(sal.workHolidayBaht));
+      setTxt('m-totalIncome', fmtB(sal.totalIncome));       setTxt('m-totalIncomeKip', fmtK(sal.totalIncome));
+      setTxt('m-tax', fmtB(sal.taxBaht));                   setTxt('m-taxKip', sal.taxKip.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₭');
+      setTxt('m-social', fmtB(sal.socialBaht));             setTxt('m-socialKip', fmtK(sal.socialBaht));
+      setTxt('m-totalDeduct', fmtB(sal.totalDeduct));       setTxt('m-totalDeductKip', fmtK(sal.totalDeduct));
+      setTxt('m-net', fmtB(sal.net));                       setTxt('m-netKip', fmtK(sal.net));
+
+      const f = sal.food;
+      setTxt('foodNote', f.fullMonth
+        ? 'มาทำงาน ' + f.workedDays + '/' + f.cycleDays + ' วัน → จ่ายเต็มเดือน ' + FOOD_RATE + ' x ' + f.foodDays + ' วัน'
+        : FOOD_RATE + ' x ' + f.foodDays + ' วัน' + (f.cycleDays ? ' (ครบ ' + (f.cycleDays - FOOD_FULL_MONTH_ALLOWANCE) + ' วัน ได้เต็ม ' + f.cycleDays + ' วัน)' : ''));
+
+      document.getElementById('salaryPeriodTag').innerText = currentCycleLabel;
+      document.getElementById('workHolidayRangeNote').innerText = 'นับจากช่วง ' + currentHolidayCycleLabel;
+      document.getElementById('donutMonthPill').innerText = currentCycleLabel;
+    }
+
+    function onExchangeRateChange() {
+      const rateInput = document.getElementById('exchangeRate');
+      try { localStorage.setItem('dash_exchange_rate', rateInput.value); } catch (e) {}
+      if (lastSummary) renderSalary(lastSummary);
+      if (currentPage === 'salary') renderSalaryPage();
+      if (currentPage === 'workdata') renderWorkdataPage();
+    }
+
+    (function restoreExchangeRate() {
+      try {
+        const saved = localStorage.getItem('dash_exchange_rate');
+        if (saved !== null && saved !== '' && !isNaN(parseFloat(saved))) {
+          document.getElementById('exchangeRate').value = saved;
+        }
+      } catch (e) {}
+    })();
+
+    function isoToDateKey(isoStr) {
+      const p = isoStr.split('-');
+      return parseInt(p[0], 10) * 10000 + parseInt(p[1], 10) * 100 + parseInt(p[2], 10);
+    }
+
+    function computeCycleFromMonth(monthVal) {
+      const parts = monthVal.split('-');
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      let py = y, pm = m - 1;
+      if (pm < 1) { pm = 12; py = y - 1; }
+      const startKey = py * 10000 + pm * 100 + 21;
+      const endKey = y * 10000 + m * 100 + 20;
+      const pad = function (n) { return ('0' + n).slice(-2); };
+      const startDisplay = '21/' + pad(pm) + '/' + py;
+      const endDisplay = '20/' + pad(m) + '/' + y;
+      // จำนวนวันในรอบ 21 -> 20 = จำนวนวันของเดือนก่อนหน้า (pm)
+      const days = new Date(py, pm, 0).getDate();
+      return { startKey: startKey, endKey: endKey, startDisplay: startDisplay, endDisplay: endDisplay, days: days };
+    }
+
+    function shiftMonthBack(monthVal) {
+      const parts = monthVal.split('-');
+      let y = parseInt(parts[0], 10);
+      let m = parseInt(parts[1], 10) - 1;
+      if (m < 1) { m = 12; y -= 1; }
+      return y + '-' + ('0' + m).slice(-2);
+    }
+
+    function cycleMonthForDateKey(dateKey) {
+      const y = Math.floor(dateKey / 10000);
+      const m = Math.floor((dateKey % 10000) / 100);
+      const d = dateKey % 100;
+      let cy = y, cm = m;
+      if (d >= 21) {
+        cm = m + 1;
+        if (cm > 12) { cm = 1; cy += 1; }
+      }
+      return cy + '-' + ('0' + cm).slice(-2);
+    }
+
+    function computeDefaultMonthFromRows(rows) {
+      if (!rows.length) {
+        const now = new Date();
+        return now.getFullYear() + '-' + ('0' + (now.getMonth() + 1)).slice(-2);
+      }
+      let maxKey = rows[0].dateKey;
+      rows.forEach(function (r) { if (r.dateKey > maxKey) maxKey = r.dateKey; });
+      return cycleMonthForDateKey(maxKey);
+    }
+
+    let currentCycleLabel = 'ทั้งหมด';
+    let currentHolidayCycleLabel = 'ทั้งหมด';
+
+    function applyFilter() {
+      const monthVal = document.getElementById('monthPicker').value;
+      const base = getRowsForCurrentEmployee();
+      if (!monthVal) {
+        currentCycleLabel = 'ทั้งหมด';
+        currentHolidayCycleLabel = 'ทั้งหมด';
+        renderAll(base, base);
+        return;
+      }
+      const cycle = computeCycleFromMonth(monthVal);
+      currentCycleLabel = cycle.startDisplay + ' - ' + cycle.endDisplay;
+      const filtered = base.filter(function (r) { return r.dateKey >= cycle.startKey && r.dateKey <= cycle.endKey; });
+
+      const holidayCycle = computeCycleFromMonth(shiftMonthBack(monthVal));
+      currentHolidayCycleLabel = holidayCycle.startDisplay + ' - ' + holidayCycle.endDisplay;
+      const holidayFiltered = base.filter(function (r) { return r.dateKey >= holidayCycle.startKey && r.dateKey <= holidayCycle.endKey; });
+
+      renderAll(filtered, holidayFiltered, cycle.days);
+    }
+
+    function clearFilter() {
+      document.getElementById('monthPicker').value = '';
+      currentCycleLabel = 'ทั้งหมด';
+      currentHolidayCycleLabel = 'ทั้งหมด';
+      const base = getRowsForCurrentEmployee();
+      renderAll(base, base);
+    }
+
+    const _chartResizeObservers = {};
+
+    function observeChartResize(elId, drawFn) {
+      const el = document.getElementById(elId);
+      if (!el) return;
+
+      if (_chartResizeObservers[elId]) {
+        _chartResizeObservers[elId].disconnect();
+        delete _chartResizeObservers[elId];
+      }
+
+      let lastW = 0, lastH = 0, debounceTimer = null;
+      const tryDraw = function () {
+        const w = el.clientWidth, h = el.clientHeight;
+        if (w > 0 && h > 0 && (w !== lastW || h !== lastH)) {
+          lastW = w; lastH = h;
+          drawFn();
+        }
+      };
+
+      if (typeof ResizeObserver !== 'undefined') {
+        const ro = new ResizeObserver(function () {
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(tryDraw, 80);
+        });
+        ro.observe(el);
+        _chartResizeObservers[elId] = ro;
+        // เผื่อกรณีขนาดพร้อมอยู่แล้วตั้งแต่เรียกครั้งแรก ให้วาดทันทีด้วย
+        tryDraw();
+      } else {
+        // เบราว์เซอร์เก่าที่ไม่มี ResizeObserver: วาดซ้ำหลายจังหวะเป็น fallback
+        tryDraw();
+        setTimeout(tryDraw, 300);
+        setTimeout(tryDraw, 800);
+        setTimeout(tryDraw, 1500);
+      }
+    }
+
+    function refitCurrentSubPageChart() {
+      if (currentPage === 'workdata') {
+        observeChartResize('workdataChart', function () { drawWorkdataChart(lastWorkdataRecords); });
+      } else if (currentPage === 'salary') {
+        observeChartResize('salaryChart', function () { drawSalaryChart(lastSalaryRecords); });
+      } else if (currentPage === 'history') {
+        observeChartResize('historyChartWrap', function () { drawHistoryChart(lastHistoryRecords); });
+      }
+    }
+
+    let resizeDebounceTimer = null;
+    window.addEventListener('resize', function () {
+  updateMobileSubpageLabel();
+  if (currentPage === 'overview') return;
+  clearTimeout(resizeDebounceTimer);
+  resizeDebounceTimer = setTimeout(refitCurrentSubPageChart, 150);
+});
+    window.addEventListener('orientationchange', function () {
+      if (currentPage === 'overview') return;
+      setTimeout(refitCurrentSubPageChart, 250);
+    });
+
+    let lastWorkdataRecords = [], lastSalaryRecords = [], lastHistoryRecords = [];
+
+    let currentPage = 'overview';
+    let workdataMode = 'month';
+    let salaryMode = 'month';
+    let historyMode = 'month';
+
+    const THAI_MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+
+    const PAGE_TITLES = {
+      overview: '📊 ภาพรวม',
+      workdata: '🗂️ ข้อมูลการทำงาน',
+      salary: '💰 สรุปเงินเดือน',
+      history: '🕒 ประวัติการทำงาน'
+    };
+
+    function updateMobileSubpageLabel() {
+  const t = document.getElementById('mspTitle');
+  if (t) t.innerText = PAGE_TITLES[currentPage] || '';
+  const topbar = document.getElementById('mobileSubpageTopbar');
+  if (topbar) {
+    const shouldShow = (window.innerWidth <= 720) && (currentPage !== 'overview');
+    topbar.style.display = shouldShow ? 'flex' : 'none';
+  }
+}
+  function updateMobileBottomNavActive() {
+  ['mbn-overview', 'mbn-workdata', 'mbn-salary', 'mbn-history'].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('active', id === 'mbn-' + currentPage);
+  });
+}
+
+    function switchPage(name) {
+      currentPage = name;
+      ['nav-overview', 'nav-workdata', 'nav-salary', 'nav-history'].forEach(function (id) {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('active', id === 'nav-' + name);
+      });
+      document.getElementById('dashboardBody').style.display = name === 'overview' ? 'block' : 'none';
+      document.getElementById('page-workdata').style.display = name === 'workdata' ? 'block' : 'none';
+      document.getElementById('page-salary').style.display = name === 'salary' ? 'block' : 'none';
+      document.getElementById('page-history').style.display = name === 'history' ? 'block' : 'none';
+      document.getElementById('overviewControls').style.display = name === 'overview' ? 'flex' : 'none';
+
+      const isOverview = name === 'overview';
+      document.getElementById('headerRow').style.display = isOverview ? 'flex' : 'none';
+      document.body.classList.toggle('sub-page-mode', !isOverview);
+
+      updateMobileSubpageLabel();
+      updateMobileBottomNavActive();
+
+      // แสดงผลหน้าใหม่แล้วรอ 1 เฟรมให้เบราว์เซอร์จัด layout เสร็จจริง
+      // (container จะมีขนาดที่แน่นอนตาม CSS แล้ว เพราะไม่พึ่ง 100vh อีกต่อไป)
+      // จากนั้นค่อยวาดกราฟของหน้านั้น ๆ
+      requestAnimationFrame(function () {
+  if (name === 'workdata') renderWorkdataPage();
+  else if (name === 'salary') renderSalaryPage();
+  else if (name === 'history') renderHistoryPage();
+
+  // ✅ เปลี่ยนจาก dispatchEvent('resize') เป็นบังคับ reflow จริง
+  setTimeout(forceFullReflow, 100);
+});
+
+      document.querySelector('.main').scrollTop = 0;
+    }
+
+    function monthLabelThai(monthKey) {
+      const parts = monthKey.split('-');
+      const m = parseInt(parts[1], 10);
+      return THAI_MONTHS_SHORT[m - 1] + ' ' + parts[0];
+    }
+
+    function getAllCycleMonths(rows) {
+      const set = {};
+      rows.forEach(function (r) { set[cycleMonthForDateKey(r.dateKey)] = true; });
+      return Object.keys(set).sort();
+    }
+
+    function getAvailableYears(rows) {
+      const monthKeys = getAllCycleMonths(rows);
+      const set = {};
+      monthKeys.forEach(function (mk) { set[mk.split('-')[0]] = true; });
+      const years = Object.keys(set).sort();
+      if (!years.length) years.push(String(new Date().getFullYear()));
+      return years;
+    }
+
+    function buildMonthRecord(monthKey, base) {
+      const cycle = computeCycleFromMonth(monthKey);
+      const filtered = base.filter(function (r) { return r.dateKey >= cycle.startKey && r.dateKey <= cycle.endKey; });
+      const holidayCycle = computeCycleFromMonth(shiftMonthBack(monthKey));
+      const holidayFiltered = base.filter(function (r) { return r.dateKey >= holidayCycle.startKey && r.dateKey <= holidayCycle.endKey; });
+
+      const s = computeSummary(filtered);
+      s.vacationPrevCount = countWorkingOnHolidays(holidayFiltered);
+      s.cycleDays = cycle.days;
+
+      const rate = parseFloat(document.getElementById('exchangeRate').value) || 0;
+      const sal = calcSalary(s, rate);
+
+      return { monthKey: monthKey, label: monthLabelThai(monthKey), s: s, sal: sal, rowCount: filtered.length };
+    }
+
+    function aggregateYear(year, base) {
+      const months = [];
+      for (let m = 1; m <= 12; m++) months.push(buildMonthRecord(year + '-' + ('0' + m).slice(-2), base));
+      const sum = function (get) { return months.reduce(function (a, r) { return a + get(r); }, 0); };
+      return {
+        monthKey: year,
+        label: year,
+        s: {
+          workDays: sum(function (r) { return r.s.workDays; }),
+          absentDays: sum(function (r) { return r.s.absentDays; }),
+          annualLeave: sum(function (r) { return r.s.annualLeave; }),
+          sickLeave: sum(function (r) { return r.s.sickLeave; }),
+          otHrs: sum(function (r) { return r.s.otHrs; }),
+          totalHrs: sum(function (r) { return r.s.totalHrs; }),
+          holidayCount: sum(function (r) { return r.s.holidayCount; }),
+          holidayOtHrs: sum(function (r) { return r.s.holidayOtHrs; }),
+          nightShiftDays: sum(function (r) { return r.s.nightShiftDays; }),
+          dayShiftDays: sum(function (r) { return r.s.dayShiftDays; }),
+          normalWorkingDay: sum(function (r) { return r.s.normalWorkingDay; }),
+          vacationLeave: sum(function (r) { return r.s.vacationLeave; }),
+          dayOffCount: sum(function (r) { return r.s.dayOffCount; }),
+          workingOnHolidaysCount: sum(function (r) { return r.s.workingOnHolidaysCount; })
+        },
+        sal: {
+          totalIncome: sum(function (r) { return r.sal.totalIncome; }),
+          totalDeduct: sum(function (r) { return r.sal.totalDeduct; }),
+          net: sum(function (r) { return r.sal.net; })
+        },
+        rowCount: sum(function (r) { return r.rowCount; })
+      };
+    }
+
+    function populateYearSelect(selectId, years) {
+      const sel = document.getElementById(selectId);
+      const prev = sel.value;
+      sel.innerHTML = years.map(function (y) { return '<option value="' + y + '">' + y + '</option>'; }).join('');
+      if (years.indexOf(prev) > -1) sel.value = prev;
+      else sel.value = years[years.length - 1];
+    }
+
+    function miniStat(grad, icon, label, val, trendPct) {
+      let trendHtml = '';
+      if (typeof trendPct === 'number' && isFinite(trendPct)) {
+        const up = trendPct >= 0;
+        trendHtml = '<span class="trend' + (up ? '' : ' down') + '">' + (up ? '▲' : '▼') + ' ' + Math.abs(trendPct).toFixed(1) + '%</span>';
+      }
+      return '<div class="mini-stat ' + grad + '">' +
+        '<div class="top-row"><span class="ic-badge">' + icon + '</span>' + trendHtml + '</div>' +
+        '<div class="lbl">' + label + '</div>' +
+        '<div class="val">' + val + '</div>' +
+      '</div>';
+    }
+
+    function trendPctFromRecords(records, get) {
+      const withData = records.filter(function (r) { return r.rowCount > 0; });
+      if (withData.length < 2) return null;
+      const last = get(withData[withData.length - 1]);
+      const prev = get(withData[withData.length - 2]);
+      if (!prev) return null;
+      return ((last - prev) / Math.abs(prev)) * 100;
+    }
+
+    function buildRecordsForPage(mode, base, years, yearSelectId) {
+  if (mode === 'recent') {
+    return { records: buildRecentMonthRecords(base, 12), periodLabel: '12 เดือนล่าสุด' };
+  }
+  if (mode === 'month') {
+    const yearSel = document.getElementById(yearSelectId);
+    const year = yearSel.value || years[years.length - 1];
+    const monthKeys = [];
+    for (let m = 1; m <= 12; m++) monthKeys.push(year + '-' + ('0' + m).slice(-2));
+    return { records: monthKeys.map(function (mk) { return buildMonthRecord(mk, base); }), periodLabel: 'ปี ' + year };
+  }
+  return { records: years.map(function (y) { return aggregateYear(y, base); }), periodLabel: 'ทุกปี' };
+}
+
+    function leaveTypeBreakdownHtml(records) {
+      const sum = function (get) { return records.reduce(function (a, r) { return a + get(r); }, 0); };
+      const items = [
+        { label: 'Night Shift',            th: 'กะกลางคืน',     icon: '🌙', color: '#7c3aed', val: sum(function (r) { return r.s.nightShiftDays; }) },
+        { label: 'Day Shift',               th: 'กะกลางวัน',     icon: '☀️', color: '#0ea5e9', val: sum(function (r) { return r.s.dayShiftDays; }) },
+        { label: 'Normal Working Day',      th: 'วันทำงานปกติ',  icon: '🧑‍💼', color: '#16a34a', val: sum(function (r) { return r.s.normalWorkingDay; }) },
+        { label: 'Day off',                 th: 'วันหยุด',       icon: '🛌', color: '#ca8a04', val: sum(function (r) { return r.s.dayOffCount; }) },
+        { label: 'Annual Leave',            th: 'ลาพักร้อน',     icon: '🌴', color: '#22c55e', val: sum(function (r) { return r.s.annualLeave; }) },
+        { label: 'Sick Leave',              th: 'ลาป่วย',        icon: '👨🏻‍⚕️', color: '#eab308', val: sum(function (r) { return r.s.sickLeave; }) },
+        { label: 'Missing Work',            th: 'ขาดงาน',        icon: '❌', color: '#ef4444', val: sum(function (r) { return r.s.absentDays; }) },
+        { label: 'Holiday',                 th: 'วันหยุดบริษัท', icon: '🎌', color: '#2dd4bf', val: sum(function (r) { return r.s.holidayCount; }) },
+        { label: 'Vacation Leave',          th: 'ลากิจ',         icon: '🏌🏽', color: '#3159d1', val: sum(function (r) { return r.s.vacationLeave; }) },
+        { label: 'Working on holidays',     th: 'ทำงานวันหยุด',  icon: '⛅️', color: '#38bdf8', val: sum(function (r) { return r.s.workingOnHolidaysCount; }) }
+      ];
+      return '<div class="leavebd-grid">' + items.map(function (it) {
+        return '<div class="leavebd-card" style="--c:' + it.color + ';">' +
+          '<div class="leavebd-ic" style="background:' + it.color + ';">' + it.icon + '</div>' +
+          '<div class="leavebd-body">' +
+            '<div class="leavebd-val">' + it.val + ' <span class="unit">วัน</span></div>' +
+            '<div class="leavebd-th">' + it.th + '</div>' +
+            '<div class="leavebd-en">' + it.label + '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('') + '</div>';
+    }
+
+    function setWorkdataMode(mode) {
+      workdataMode = mode;
+      document.querySelectorAll('#workdataModeToggle button').forEach(function (b) {
+        b.classList.toggle('active', b.dataset.mode === mode);
+      });
+      renderWorkdataPage();
+    }
+
+    function renderWorkdataPage() {
+      const base = getRowsForCurrentEmployee();
+      const years = getAvailableYears(base);
+      populateYearSelect('workdataYearSelect', years);
+      document.getElementById('workdataYearSelect').parentElement.style.display = workdataMode === 'month' ? 'flex' : 'none';
+
+      const built = buildRecordsForPage(workdataMode, base, years, 'workdataYearSelect');
+      document.getElementById('workdataPeriodPill').innerText = '📅 ' + built.periodLabel;
+      document.getElementById('workdataChartPill').innerText = '📅 ' + built.periodLabel;
+
+      const totalWork = built.records.reduce(function (a, r) { return a + r.s.workDays; }, 0);
+      const totalAbsent = built.records.reduce(function (a, r) { return a + r.s.absentDays; }, 0);
+      const totalOt = built.records.reduce(function (a, r) { return a + r.s.otHrs; }, 0);
+      const totalHrs = built.records.reduce(function (a, r) { return a + r.s.totalHrs; }, 0);
+      document.getElementById('workdataSummaryGrid').innerHTML =
+        miniStat('grad-green', '📅', 'วันทำงานรวม', totalWork + ' วัน', trendPctFromRecords(built.records, function (r) { return r.s.workDays; })) +
+        miniStat('grad-pink', '❌', 'ขาดงานรวม', totalAbsent + ' วัน', trendPctFromRecords(built.records, function (r) { return r.s.absentDays; })) +
+        miniStat('grad-orange', '🕓', 'OT รวม', Math.round(totalOt) + ' ชม.', trendPctFromRecords(built.records, function (r) { return r.s.otHrs; })) +
+        miniStat('grad-blue', '⏱️', 'ชั่วโมงรวม', Math.round(totalHrs) + ' ชม.', trendPctFromRecords(built.records, function (r) { return r.s.totalHrs; })) +
+        leaveTypeBreakdownHtml(built.records);
+
+      lastWorkdataRecords = built.records;
+      observeChartResize('workdataChart', function () { drawWorkdataChart(lastWorkdataRecords); });
+
+      const nowKey = computeDefaultMonthFromRows(allRows);
+      document.getElementById('workdataTbody').innerHTML = built.records.map(function (r) {
+        const isCurrent = workdataMode === 'month' && r.monthKey === nowKey;
+        return '<tr class="' + (isCurrent ? 'current-month' : '') + '">' +
+          '<td>' + r.label + '</td>' +
+          '<td>' + r.s.workDays + ' วัน</td>' +
+          '<td>' + r.s.absentDays + ' วัน</td>' +
+          '<td>' + r.s.annualLeave + ' วัน</td>' +
+          '<td>' + r.s.sickLeave + ' วัน</td>' +
+          '<td>' + Math.round(r.s.otHrs) + ' ชม.</td>' +
+          '<td>' + Math.round(r.s.totalHrs) + ' ชม.</td></tr>';
+      }).join('');
+    }
+
+function drawWorkdataChart(records) {
+  const el = document.getElementById('workdataChart');
+  if (!records.length) { el.innerHTML = ''; return; }
+  const data = new google.visualization.DataTable();
+  data.addColumn('string', workdataMode === 'month' ? 'เดือน' : 'ปี');
+  data.addColumn('number', 'วันทำงาน');
+  data.addColumn('number', 'ขาดงาน');
+  data.addColumn('number', 'OT (ชม.)');
+  data.addRows(records.map(function (r) {
+    return [r.label, r.s.workDays, r.s.absentDays, Math.round(r.s.otHrs)];
+  }));
+
+  const options = {
+    legend: { position: 'top', textStyle: { color: '#c7cbe0', fontSize: 12 } },
+    colors: ['#34d97f', '#f87171', '#fbbf24'],
+    chartArea: { width: '88%', height: '72%', top: 46 },
+    backgroundColor: 'transparent',
+    hAxis: {
+      textStyle: { fontSize: 11, color: '#8b90a6' },
+      baselineColor: '#2a2e40',
+      gridlines: { color: 'transparent' }
+    },
+    vAxes: {
+      0: {
+        textStyle: { fontSize: 11, color: '#8b90a6' },
+        gridlines: { color: '#1c2136' },
+        baselineColor: '#2a2e40',
+        viewWindowMode: 'explicit',
+        viewWindow: { min: 0 }
+      },
+      1: {
+        title: 'OT (ชม.)',
+        titleTextStyle: { color: '#8b90a6', fontSize: 11 },
+        textStyle: { fontSize: 11, color: '#8b90a6' },
+        gridlines: { color: 'transparent' },
+        baselineColor: '#2a2e40',
+        viewWindowMode: 'explicit',
+        viewWindow: { min: 0 }
+      }
+    },
+    series: {
+      0: { type: 'bars', targetAxisIndex: 0 },
+      1: { type: 'bars', targetAxisIndex: 0 },
+      2: { type: 'line', targetAxisIndex: 1, lineWidth: 3,
+           pointSize: 6, pointShape: 'circle', curveType: 'function' }
+    },
+    bar: { groupWidth: '55%' },
+    isStacked: false,
+    animation: { startup: true, duration: 700, easing: 'out' },
+    tooltip: { textStyle: { fontSize: 12 } }
+  };
+  const chart = new google.visualization.ComboChart(el);
+  chart.draw(data, options);
+}
+
+    function setSalaryMode(mode) {
+      salaryMode = mode;
+      document.querySelectorAll('#salaryModeToggle button').forEach(function (b) {
+        b.classList.toggle('active', b.dataset.mode === mode);
+      });
+      renderSalaryPage();
+    }
+
+    function renderSalaryPage() {
+      const base = getRowsForCurrentEmployee();
+      const years = getAvailableYears(base);
+      populateYearSelect('salaryYearSelect', years);
+   document.getElementById('salaryYearSelect').parentElement.style.display =(salaryMode === 'month') ? 'flex' : 'none';
+
+      const built = buildRecordsForPage(salaryMode, base, years, 'salaryYearSelect');
+      document.getElementById('salaryPeriodPill').innerText = '📅 ' + built.periodLabel;
+
+      const totalIncome = built.records.reduce(function (a, r) { return a + r.sal.totalIncome; }, 0);
+      const totalDeduct = built.records.reduce(function (a, r) { return a + r.sal.totalDeduct; }, 0);
+      const totalNet = built.records.reduce(function (a, r) { return a + r.sal.net; }, 0);
+      const nonEmpty = built.records.filter(function (r) { return r.rowCount > 0; }).length || 1;
+      document.getElementById('salarySummaryGrid').innerHTML =
+        miniStat('grad-blue', '💰', 'รายได้รวม', Math.round(totalIncome).toLocaleString('en-US') + ' ฿', trendPctFromRecords(built.records, function (r) { return r.sal.totalIncome; })) +
+        miniStat('grad-pink', '📉', 'หักรวม', Math.round(totalDeduct).toLocaleString('en-US') + ' ฿', trendPctFromRecords(built.records, function (r) { return r.sal.totalDeduct; })) +
+        miniStat('grad-green', '✅', 'เงินเดือนสุทธิรวม', Math.round(totalNet).toLocaleString('en-US') + ' ฿', trendPctFromRecords(built.records, function (r) { return r.sal.net; })) +
+        miniStat('grad-purple', '📊', 'เฉลี่ยสุทธิ/เดือน', Math.round(totalNet / nonEmpty).toLocaleString('en-US') + ' ฿');
+
+      lastSalaryRecords = built.records;
+      observeChartResize('salaryChart', function () { drawSalaryChart(lastSalaryRecords); });
+      drawSalaryDonut(totalIncome, totalDeduct, totalNet);
+    }
+
+    function drawSalaryDonut(totalIncome, totalDeduct, totalNet) {
+  const el = document.getElementById('salaryDonutChart');
+  if (!el) return;
+  if (!totalIncome) { el.innerHTML = ''; document.getElementById('salaryDonutLegend').innerHTML = ''; return; }
+
+  el.style.width = '100%';
+  el.style.height = '100%';
+
+  const data = google.visualization.arrayToDataTable([
+    ['รายการ', 'บาท'],
+    ['เงินเดือนสุทธิ', Math.max(totalNet, 0)],
+    ['รายการหัก', Math.max(totalDeduct, 0)]
+  ]);
+
+  // ✅ วัดจาก .donut-wrap (parent ที่มีความสูงตายตัว 156px) แทน el เอง
+  const wrapEl = el.parentElement; // .donut-wrap
+  const measuredWidth = wrapEl.clientWidth;
+  const measuredHeight = wrapEl.clientHeight || 156;
+
+  const options = {
+    pieHole: 0.68,
+    colors: ['#34d97f', '#f87171'],
+    legend: 'none',
+    chartArea: { width: '100%', height: '100%' },
+    width: measuredWidth > 0 ? measuredWidth : undefined,
+    height: measuredHeight,
+    pieSliceText: 'none',
+    backgroundColor: 'transparent',
+    pieSliceBorderColor: 'transparent'
+  };
+  new google.visualization.PieChart(el).draw(data, options);
+  document.getElementById('salaryDonutCenterNum').innerText = Math.round(totalIncome).toLocaleString('en-US') + ' ฿';
+  const netPct = totalIncome ? Math.round(totalNet / totalIncome * 100) : 0;
+  document.getElementById('salaryDonutLegend').innerHTML =
+    '<div class="row"><span class="k"><span class="dot" style="background:#4d7dfb;"></span>รายได้รวม</span><span class="v">' + Math.round(totalIncome).toLocaleString('en-US') + ' ฿</span></div>' +
+    '<div class="row"><span class="k"><span class="dot" style="background:#34d97f;"></span>เงินเดือนสุทธิ</span><span class="v">' + Math.round(totalNet).toLocaleString('en-US') + ' ฿</span></div>' +
+    '<div class="row"><span class="k"><span class="dot" style="background:#f87171;"></span>รายการหัก</span><span class="v">' + Math.round(totalDeduct).toLocaleString('en-US') + ' ฿</span></div>' +
+    '<div class="rate"><span>สัดส่วนสุทธิ</span><span class="v">' + netPct + '%</span></div>';
+}
+
+    function drawSalaryChart(records) {
+  const el = document.getElementById('salaryChart');
+  if (!records.length) { el.innerHTML = ''; return; }
+
+  el.style.width = '100%';
+  el.style.height = '100%';
+
+  const data = new google.visualization.DataTable();
+  data.addColumn('string', salaryMode === 'month' ? 'เดือน' : 'ปี');
+  data.addColumn('number', 'รายได้รวม');
+  data.addColumn('number', 'หัก');
+  data.addColumn('number', 'สุทธิ');
+  data.addRows(records.map(function (r) {
+    return [r.label, Math.round(r.sal.totalIncome), Math.round(r.sal.totalDeduct), Math.round(r.sal.net)];
+  }));
+
+  // ✅ วัดจาก parent (.card) เสมอ แทนที่จะวัดจาก el ตัวเองที่อาจว่างเปล่า
+  const parentEl = el.parentElement;
+  const measuredWidth = parentEl.clientWidth - 36; // หัก padding ของ .card (18px ซ้าย-ขวา)
+  const measuredHeight = el.clientHeight || 380;
+
+  const options = {
+    width: measuredWidth > 0 ? measuredWidth : undefined,
+    height: measuredHeight,
+    legend: { position: 'top', textStyle: { color: '#c7cbe0', fontSize: 12 } },
+    colors: ['#4d7dfb', '#f87171', '#34d97f'],
+    chartArea: { width: '92%', height: '76%', top: 50 },
+    backgroundColor: 'transparent',
+    hAxis: { textStyle: { fontSize: 11, color: '#8b90a6' }, baselineColor: '#2a2e40', gridlines: { color: 'transparent' } },
+    vAxis: { textStyle: { fontSize: 11, color: '#8b90a6' }, gridlines: { color: '#1c2136' }, baselineColor: '#2a2e40', format: 'short' },
+    seriesType: 'bars',
+    series: { 2: { type: 'line', lineWidth: 4, pointSize: 7, pointShape: 'circle' } },
+    bar: { groupWidth: '58%' },
+    curveType: 'function',
+    animation: { startup: true, duration: 800, easing: 'out' },
+    tooltip: { textStyle: { fontSize: 12 } }
+  };
+  const chart = new google.visualization.ComboChart(el);
+  chart.draw(data, options);
+}
+
+    function setHistoryMode(mode) {
+      historyMode = mode;
+      document.querySelectorAll('#historyModeToggle button').forEach(function (b) {
+        b.classList.toggle('active', b.dataset.mode === mode);
+      });
+      renderHistoryPage();
+    }
+
+    function renderHistoryPage() {
+      const base = getRowsForCurrentEmployee();
+      const years = getAvailableYears(base);
+      populateYearSelect('historyYearSelect', years);
+      document.getElementById('historyYearSelect').parentElement.style.display =(historyMode === 'month') ? 'flex' : 'none';
+
+      const built = buildRecordsForPage(historyMode, base, years, 'historyYearSelect');
+      document.getElementById('historyPeriodPill').innerText = '📅 ' + built.periodLabel;
+
+      const totalWork = built.records.reduce(function (a, r) { return a + r.s.workDays; }, 0);
+      const totalAbsent = built.records.reduce(function (a, r) { return a + r.s.absentDays; }, 0);
+      const totalOt = built.records.reduce(function (a, r) { return a + r.s.otHrs; }, 0);
+      const totalHrs = built.records.reduce(function (a, r) { return a + r.s.totalHrs; }, 0);
+      document.getElementById('historySummaryGrid').innerHTML =
+        miniStat('grad-green', '📅', 'วันทำงานรวม', totalWork + ' วัน', trendPctFromRecords(built.records, function (r) { return r.s.workDays; })) +
+        miniStat('grad-pink', '❌', 'ขาดงานรวม', totalAbsent + ' วัน', trendPctFromRecords(built.records, function (r) { return r.s.absentDays; })) +
+        miniStat('grad-orange', '🕓', 'OT รวม', Math.round(totalOt) + ' ชม.', trendPctFromRecords(built.records, function (r) { return r.s.otHrs; })) +
+        miniStat('grad-blue', '⏱️', 'ชั่วโมงรวม', Math.round(totalHrs) + ' ชม.', trendPctFromRecords(built.records, function (r) { return r.s.totalHrs; })) +
+        leaveTypeBreakdownHtml(built.records);
+
+      lastHistoryRecords = built.records;
+      observeChartResize('historyChartWrap', function () { drawHistoryChart(lastHistoryRecords); });
+    }
+
+    let historyChartInstance = null;
+
+function drawHistoryChart(records) {
+  const canvas = document.getElementById('historyChart');
+  if (!records.length) {
+    if (historyChartInstance) { historyChartInstance.destroy(); historyChartInstance = null; }
+    return;
+  }
+  const ctx = canvas.getContext('2d');
+
+  const parent = canvas.parentElement;
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+
+  const labels = records.map(function (r) { return r.label; });
+  const workDays = records.map(function (r) { return r.s.workDays; });
+  const totalHrs = records.map(function (r) { return Math.round(r.s.totalHrs); });
+
+  const barGradient = ctx.createLinearGradient(0, 0, 0, canvas.clientHeight || 400);
+  barGradient.addColorStop(0, '#4ade80');
+  barGradient.addColorStop(1, '#22d3ee');
+
+  const lineFillGradient = ctx.createLinearGradient(0, 0, 0, canvas.clientHeight || 400);
+  lineFillGradient.addColorStop(0, 'rgba(45,212,191,0.35)');
+  lineFillGradient.addColorStop(1, 'rgba(45,212,191,0)');
+
+  if (historyChartInstance) historyChartInstance.destroy();
+
+  historyChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'วันทำงาน',
+          data: workDays,
+          backgroundColor: barGradient,
+          borderRadius: 6,
+          borderSkipped: false,
+          barPercentage: 0.55,
+          categoryPercentage: 0.75,
+          yAxisID: 'y'
+        },
+        {
+          type: 'line',
+          label: 'ชั่วโมงรวม',
+          data: totalHrs,
+          borderColor: '#5eead4',
+          backgroundColor: lineFillGradient,
+          borderWidth: 3,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#5eead4',
+          pointBorderColor: '#0a0e21',
+          pointBorderWidth: 2,
+          tension: 0.4,
+          fill: true,
+          clip: false,
+          yAxisID: 'y1'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      layout: {
+        padding: { top: 4, bottom: 4 }
+      },
+      plugins: {
+        legend: {
+          position: 'top',
+          align: 'start',
+          labels: {
+            color: '#c7cbe0',
+            usePointStyle: true,
+            pointStyle: 'circle',
+            font: { size: 12, family: 'Sarabun' },
+            padding: 16
+          }
+        },
+        tooltip: {
+          backgroundColor: '#141c40',
+          titleColor: '#f3f4f9',
+          bodyColor: '#c7cbe0',
+          borderColor: '#232c56',
+          borderWidth: 1,
+          padding: 10,
+          bodyFont: { family: 'Sarabun' },
+          titleFont: { family: 'Sarabun' }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#8b90a6', font: { size: 11, family: 'Sarabun' } },
+          grid: { color: 'transparent' },
+          border: { color: '#2a2e40' }
+        },
+        y: {
+          position: 'left',
+          beginAtZero: true,
+          grace: '8%',
+          title: { display: true, text: 'วัน', color: '#8b90a6', font: { size: 11 } },
+          ticks: { color: '#8b90a6', font: { size: 11 } },
+          grid: { color: '#1c2136' },
+          border: { color: '#2a2e40' }
+        },
+        y1: {
+          position: 'right',
+          beginAtZero: true,
+          grace: '8%',
+          title: { display: true, text: 'ชั่วโมง', color: '#8b90a6', font: { size: 11 } },
+          ticks: { color: '#8b90a6', font: { size: 11 } },
+          grid: { drawOnChartArea: false },
+          border: { color: '#2a2e40' }
+        }
+      },
+      animation: { duration: 800, easing: 'easeOutQuart' }
+    }
+  });
+
+  requestAnimationFrame(function () {
+    if (historyChartInstance) historyChartInstance.resize();
+  });
+}
+function buildRecentMonthRecords(base, count) {
+  const months = getAllCycleMonths(base);
+  const last = months.slice(-1 * (count || 12));
+  return last.map(function (mk) { return buildMonthRecord(mk, base); });
+}
+  </script>
+</body>
+</html>

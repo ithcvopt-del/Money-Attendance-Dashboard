@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>บันทึกข้อมูล - Data Entry</title>
+  <meta charset="UTF-8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --bg: #14161f;
+      --card: #1c1f2b;
+      --field: #1a1d27;
+      --line: #2a2e3d;
+      --ink: #f2f3f7;
+      --ink-soft: #9aa0b1;
+      --accent: #6a63f5;
+      --accent-dark: #574fe0;
+      --danger: #ef4444;
+    }
+    body {
+      font-family: 'Sarabun', 'Segoe UI', Tahoma, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      margin: 0;
+      min-height: 100vh;
+      padding-bottom: 90px;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+    .topbar h1 { font-size: 15px; margin: 0; font-weight: 700; flex: 1; text-align: center; }
+
+    .back-btn {
+      display: flex; align-items: center; gap: 7px;
+      background: var(--field);
+      border: 1px solid var(--line);
+      color: var(--ink);
+      padding: 8px 14px 8px 10px;
+      border-radius: 999px;
+      font-family: inherit;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, border-color .15s, transform .1s;
+    }
+    .back-btn:hover { background: #23273a; border-color: var(--accent); }
+    .back-btn:active { transform: scale(0.96); }
+    .back-btn svg { display: block; }
+
+    .edit-entry-btn {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(106,99,245,.14);
+      border: 1px solid rgba(106,99,245,.35);
+      color: #b3aefb;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-family: inherit;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+      white-space: nowrap;
+    }
+    .edit-entry-btn:hover { background: rgba(106,99,245,.24); }
+
+    .wrap { max-width: 480px; margin: 0 auto; padding: 20px 20px 0; }
+    .field { margin-bottom: 22px; }
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--ink);
+    }
+    label .req { color: var(--accent); margin-left: 2px; }
+    input[type="date"], input[type="number"], select, input[type="text"] {
+      width: 100%;
+      font-family: inherit;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font-size: 14.5px;
+      color: var(--ink);
+      background: var(--field);
+      appearance: none;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(106,99,245,.25);
+    }
+    select { color-scheme: dark; }
+    .shift-row { display: flex; gap: 10px; }
+    .shift-btn {
+      flex: 1;
+      text-align: center;
+      padding: 12px 8px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: var(--field);
+      color: var(--ink);
+      cursor: pointer;
+      font-size: 14.5px;
+      font-weight: 500;
+      user-select: none;
+      transition: background .15s, border-color .15s;
+    }
+    .shift-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      font-weight: 700;
+    }
+    .ot-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--field);
+      padding: 4px 6px;
+    }
+    .ot-row input {
+      border: none;
+      background: transparent;
+      text-align: center;
+      flex: 1;
+    }
+    .ot-btn {
+      width: 38px; height: 38px;
+      border-radius: 8px;
+      border: none;
+      background: #262a3a;
+      color: var(--ink);
+      font-size: 18px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .ot-btn:hover { background: #2f3346; }
+    .picture-box {
+      border: 1px dashed var(--line);
+      border-radius: 10px;
+      background: var(--field);
+      padding: 22px;
+      text-align: center;
+      cursor: pointer;
+      color: var(--ink-soft);
+      font-size: 13px;
+      position: relative;
+      overflow: hidden;
+    }
+    .picture-box svg { display: block; margin: 0 auto 6px; }
+    .picture-box img.preview {
+      max-width: 100%;
+      max-height: 160px;
+      border-radius: 8px;
+      display: block;
+      margin: 0 auto;
+    }
+    #pictureInput { display: none; }
+    .msg {
+      font-size: 13px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .msg.error { background: rgba(239,68,68,.12); color: #fca5a5; display: block; }
+    .msg.success { background: rgba(34,197,94,.12); color: #86efac; display: block; }
+
+    .editing-banner {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: rgba(245,158,11,.12);
+      color: #fbbf7a;
+      border: 1px solid rgba(245,158,11,.35);
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 12.5px;
+      margin-bottom: 16px;
+    }
+    .editing-banner.show { display: flex; }
+    .editing-banner button {
+      background: none; border: none;
+      color: #fbbf7a;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 12.5px;
+      text-decoration: underline;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+
+    .footer-bar {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      background: var(--card);
+      border-top: 1px solid var(--line);
+      padding: 14px 20px;
+      display: flex;
+      gap: 12px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    .footer-bar button {
+      flex: 1;
+      padding: 13px;
+      border-radius: 10px;
+      border: none;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    #cancelBtn { background: #262a3a; color: var(--ink); }
+    #saveBtn { background: var(--accent); color: #fff; }
+    #saveBtn:hover { background: var(--accent-dark); }
+    #saveBtn:disabled { opacity: .6; cursor: default; }
+
+    .readonly-field {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font-size: 14.5px;
+      background: var(--field);
+      color: var(--ink-soft);
+    }
+
+    /* Leave Type: trigger field ที่กดแล้วเปิด bottom sheet */
+    .picker-field {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font-size: 14.5px;
+      background: var(--field);
+      color: var(--ink);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+    .picker-field.placeholder { color: var(--ink-soft); }
+    .picker-field .chev { color: var(--ink-soft); font-size: 12px; }
+
+    /* Bottom sheet modal (ใช้ร่วมกัน: Leave Type และ แก้ไขข้อมูล) */
+    .sheet-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 50;
+    }
+    .sheet-overlay.open { display: block; }
+    .sheet {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      max-width: 480px;
+      margin: 0 auto;
+      background: var(--card);
+      border-radius: 18px 18px 0 0;
+      max-height: 82vh;
+      display: flex;
+      flex-direction: column;
+      z-index: 51;
+    }
+    .sheet-header {
+      padding: 18px 20px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    .sheet-header h2 { font-size: 17px; margin: 0 0 12px; font-weight: 700; }
+    .sheet-search {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: var(--field);
+      color: var(--ink);
+      font-family: inherit;
+      font-size: 14px;
+    }
+    .sheet-body { overflow-y: auto; padding: 6px 6px; flex: 1; }
+    .sheet-option {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px;
+      cursor: pointer;
+      border-radius: 10px;
+    }
+    .sheet-option:hover { background: #23273a; }
+    .radio-dot {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      border: 1.5px solid var(--ink-soft);
+      flex-shrink: 0;
+      position: relative;
+    }
+    .sheet-option.selected .radio-dot {
+      border-color: var(--accent);
+    }
+    .sheet-option.selected .radio-dot::after {
+      content: '';
+      position: absolute; inset: 3px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    .sheet-option .opt-label { font-size: 15px; }
+    .sheet-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--line);
+      text-align: right;
+    }
+    .sheet-done {
+      background: none; border: none;
+      color: var(--accent);
+      font-size: 15px; font-weight: 700;
+      cursor: pointer;
+      padding: 8px 12px;
+      font-family: inherit;
+    }
+
+    /* รายการข้อมูลย้อนหลังในหน้าต่างแก้ไข */
+    .entry-list-item {
+      display: flex; flex-direction: column; gap: 3px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .entry-list-item:hover { background: #23273a; }
+    .entry-list-item .el-date { font-size: 14.5px; font-weight: 700; }
+    .entry-list-item .el-meta { font-size: 12px; color: var(--ink-soft); }
+    .entry-empty { padding: 28px 16px; text-align: center; color: var(--ink-soft); font-size: 13px; }
+
+    /* ---------- ปรับให้ใช้งานสะดวกบนจอมือถือ ---------- */
+    @media (max-width: 380px) {
+      .topbar { padding: 12px 12px; gap: 6px; }
+      .topbar h1 { font-size: 13px; }
+      .back-btn, .edit-entry-btn { padding: 7px 10px; font-size: 12px; }
+      .wrap { padding: 16px 14px 0; }
+      .footer-bar { padding: 12px 14px; }
+    }
+    @media (max-width: 320px) {
+      .back-btn span, .back-btn { gap: 4px; }
+      .edit-entry-btn { padding: 7px 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <button class="back-btn" type="button" onclick="goHome()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      ย้อนกลับ
+    </button>
+    <h1>📑เพิ่มข้อมูล📑</h1>
+    <button class="edit-entry-btn" type="button" onclick="openEditModal()">✏️ แก้ไข</button>
+  </div>
+
+  <div class="wrap">
+    <div id="msgBox" class="msg"></div>
+
+    <div class="editing-banner" id="editingBanner">
+      <span id="editingBannerText">กำลังแก้ไขข้อมูล...</span>
+      <button type="button" onclick="cancelEdit()">ยกเลิกแก้ไข</button>
+    </div>
+
+    <div class="field">
+      <label>📅Date<span class="req">*</span></label>
+      <input type="date" id="fDate">
+    </div>
+
+    <div class="field">
+      <label>👷🏻‍♂️Name<span class="req">*</span></label>
+      <div class="readonly-field" id="fName">Sengchalern Deevanna</div>
+    </div>
+
+    <div class="field">
+      <label>🏯Leave Type<span class="req">*</span></label>
+      <div class="picker-field placeholder" id="leaveTrigger" onclick="openLeaveModal()">
+        <span id="leaveTriggerText">-- เลือกประเภท --</span>
+        <span class="chev">▾</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>🌄Select Shift<span class="req">*</span></label>
+      <div class="shift-row" id="shiftRow"></div>
+    </div>
+
+    <div class="field">
+      <label>⏰OT (ชั่วโมง)</label>
+      <div class="ot-row">
+        <button type="button" class="ot-btn" onclick="stepOt(-1)">−</button>
+        <input type="number" id="fOt" value="0" min="0" step="1">
+        <button type="button" class="ot-btn" onclick="stepOt(1)">+</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>📸Picture</label>
+      <div class="picture-box" id="pictureBox" onclick="document.getElementById('pictureInput').click()">
+        <div id="pictureBoxInner">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h3l2-2h6l2 2h3v12H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+          แตะเพื่อเลือกรูปภาพ (ไม่บังคับ)
+        </div>
+        <input type="file" id="pictureInput" accept="image/*" onchange="onPictureSelected(event)">
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-bar">
+    <button id="cancelBtn" type="button" onclick="goHome()">Cancel</button>
+    <button id="saveBtn" type="button" onclick="saveEntry()">Save</button>
+  </div>
+
+  <!-- Bottom sheet: Leave Type -->
+  <div class="sheet-overlay" id="sheetOverlay" onclick="closeLeaveModal()"></div>
+  <div class="sheet" id="leaveSheet" style="display:none;">
+    <div class="sheet-header">
+      <h2>Leave Type</h2>
+      <input type="text" class="sheet-search" id="leaveSearch" placeholder="Search" oninput="renderLeaveList(this.value)">
+    </div>
+    <div class="sheet-body" id="leaveList"></div>
+    <div class="sheet-footer">
+      <button class="sheet-done" type="button" onclick="closeLeaveModal()">Done</button>
+    </div>
+  </div>
+
+  <!-- Bottom sheet: แก้ไขข้อมูลที่บันทึกไว้ -->
+  <div class="sheet-overlay" id="editSheetOverlay" onclick="closeEditModal()"></div>
+  <div class="sheet" id="editSheet" style="display:none;">
+    <div class="sheet-header">
+      <h2>แก้ไขข้อมูลที่บันทึกไว้</h2>
+    </div>
+    <div class="sheet-body" id="editList">
+      <div class="entry-empty">กำลังโหลด...</div>
+    </div>
+    <div class="sheet-footer">
+      <button class="sheet-done" type="button" onclick="closeEditModal()">ปิด</button>
+    </div>
+  </div>
+
+  <script src="js/db.js"></script>
+  <script>
+    const FIXED_NAME = 'Sengchalern Deevanna';
+
+    let pictureBase64 = null;
+    let pictureFileName = '';
+    let pictureMimeType = '';
+    let selectedShift = '';
+    let selectedLeaveType = '';
+    let allLeaveTypes = [];
+
+    // สถานะการแก้ไขข้อมูลเดิม
+    let editingRowNumber = null;
+    let existingPictureUrl = '';
+    let myEntriesCache = null;
+
+    // ตั้งค่าวันที่เริ่มต้นเป็นวันนี้
+    document.getElementById('fDate').valueAsDate = new Date();
+
+    google.script.run.withSuccessHandler(initForm).getFormInitData();
+
+    function initForm(data) {
+      allLeaveTypes = data.leaveTypes;
+      renderLeaveList('');
+
+      const shiftRow = document.getElementById('shiftRow');
+      data.shifts.forEach(function (s) {
+        const btn = document.createElement('div');
+        btn.className = 'shift-btn';
+        btn.textContent = s;
+        btn.onclick = function () { selectShift(s, btn); };
+        shiftRow.appendChild(btn);
+      });
+    }
+
+    // ---- Leave Type bottom sheet ----
+    function openLeaveModal() {
+      document.getElementById('sheetOverlay').classList.add('open');
+      document.getElementById('leaveSheet').style.display = 'flex';
+      document.getElementById('leaveSearch').value = '';
+      renderLeaveList('');
+    }
+
+    function closeLeaveModal() {
+      document.getElementById('sheetOverlay').classList.remove('open');
+      document.getElementById('leaveSheet').style.display = 'none';
+    }
+
+    function renderLeaveList(filterText) {
+      const list = document.getElementById('leaveList');
+      list.innerHTML = '';
+      const q = (filterText || '').trim().toLowerCase();
+      allLeaveTypes
+        .filter(function (lt) { return lt.toLowerCase().indexOf(q) > -1; })
+        .forEach(function (lt) {
+          const row = document.createElement('div');
+          row.className = 'sheet-option' + (lt === selectedLeaveType ? ' selected' : '');
+          row.innerHTML = '<span class="radio-dot"></span><span class="opt-label">' + lt + '</span>';
+          row.onclick = function () { chooseLeaveType(lt); };
+          list.appendChild(row);
+        });
+    }
+
+    function chooseLeaveType(lt) {
+      selectedLeaveType = lt;
+      const trigger = document.getElementById('leaveTrigger');
+      trigger.classList.remove('placeholder');
+      document.getElementById('leaveTriggerText').textContent = lt;
+      renderLeaveList(document.getElementById('leaveSearch') ? document.getElementById('leaveSearch').value : '');
+      closeLeaveModal();
+    }
+
+    function selectShift(value, el) {
+      selectedShift = value;
+      document.querySelectorAll('.shift-btn').forEach(function (b) { b.classList.remove('active'); });
+      el.classList.add('active');
+    }
+
+    function stepOt(delta) {
+      const input = document.getElementById('fOt');
+      let val = parseFloat(input.value) || 0;
+      val = Math.max(0, val + delta);
+      input.value = val;
+    }
+
+    function resetPictureBox() {
+      document.getElementById('pictureBoxInner').innerHTML =
+        '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h3l2-2h6l2 2h3v12H4z"/><circle cx="12" cy="13" r="3.5"/></svg>' +
+        'แตะเพื่อเลือกรูปภาพ (ไม่บังคับ)';
+    }
+
+    function onPictureSelected(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      pictureFileName = file.name;
+      pictureMimeType = file.type || 'image/jpeg';
+      const reader = new FileReader();
+      reader.onload = function () {
+        pictureBase64 = reader.result.split(',')[1];
+        document.getElementById('pictureBoxInner').innerHTML =
+          '<img class="preview" src="' + reader.result + '">';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function showMsg(text, type) {
+      const box = document.getElementById('msgBox');
+      box.className = 'msg ' + type;
+      box.textContent = text;
+    }
+
+    function goHome() {
+      google.script.run.withSuccessHandler(function (urls) {
+        window.top.location.href = urls.dashboard;
+      }).getPageUrls();
+    }
+
+    // ---- Bottom sheet: แก้ไขข้อมูลที่บันทึกไว้ ----
+    function openEditModal() {
+      document.getElementById('editSheetOverlay').classList.add('open');
+      document.getElementById('editSheet').style.display = 'flex';
+      if (myEntriesCache) {
+        renderEditList(myEntriesCache);
+        return;
+      }
+      document.getElementById('editList').innerHTML = '<div class="entry-empty">กำลังโหลด...</div>';
+      google.script.run
+        .withSuccessHandler(function (entries) {
+          myEntriesCache = entries;
+          renderEditList(entries);
+        })
+        .withFailureHandler(function (err) {
+          document.getElementById('editList').innerHTML =
+            '<div class="entry-empty">โหลดข้อมูลไม่สำเร็จ: ' + err.message + '</div>';
+        })
+        .getMyEntries(FIXED_NAME);
+    }
+
+    function closeEditModal() {
+      document.getElementById('editSheetOverlay').classList.remove('open');
+      document.getElementById('editSheet').style.display = 'none';
+    }
+
+    function renderEditList(entries) {
+      const list = document.getElementById('editList');
+      list.innerHTML = '';
+      if (!entries || !entries.length) {
+        list.innerHTML = '<div class="entry-empty">ยังไม่มีข้อมูลที่บันทึกไว้</div>';
+        return;
+      }
+      entries.forEach(function (en) {
+        const item = document.createElement('div');
+        item.className = 'entry-list-item';
+        item.innerHTML =
+          '<span class="el-date">' + en.dateDisplay + (en.dayOfWeek ? ' (' + en.dayOfWeek + ')' : '') + '</span>' +
+          '<span class="el-meta">' + en.leaveType + ' • ' + en.shift + ' • OT ' + en.ot + ' ชม.</span>';
+        item.onclick = function () { loadEntryForEdit(en); };
+        list.appendChild(item);
+      });
+    }
+
+    function loadEntryForEdit(en) {
+      editingRowNumber = en.rowNumber;
+      existingPictureUrl = en.picture || '';
+
+      document.getElementById('fDate').value = en.isoDate;
+      chooseLeaveType(en.leaveType);
+
+      document.querySelectorAll('.shift-btn').forEach(function (b) {
+        if (b.textContent === en.shift) {
+          selectShift(en.shift, b);
+        } else {
+          b.classList.remove('active');
+        }
+      });
+
+      document.getElementById('fOt').value = en.ot || 0;
+
+      pictureBase64 = null;
+      pictureFileName = '';
+      pictureMimeType = '';
+      if (existingPictureUrl) {
+        document.getElementById('pictureBoxInner').innerHTML =
+          '<div style="font-size:12px; margin-bottom:6px;">📎 มีรูปเดิมแนบอยู่ — เลือกรูปใหม่เพื่อเปลี่ยน</div>' +
+          '<a href="' + existingPictureUrl + '" target="_blank" style="color:var(--accent); font-size:12px;" onclick="event.stopPropagation();">ดูรูปเดิม</a>';
+      } else {
+        resetPictureBox();
+      }
+
+      document.getElementById('editingBannerText').innerText = 'กำลังแก้ไขข้อมูลวันที่ ' + en.dateDisplay;
+      document.getElementById('editingBanner').classList.add('show');
+      document.getElementById('saveBtn').textContent = 'บันทึกการแก้ไข';
+
+      closeEditModal();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelEdit() {
+      editingRowNumber = null;
+      existingPictureUrl = '';
+      document.getElementById('editingBanner').classList.remove('show');
+      document.getElementById('saveBtn').textContent = 'Save';
+    }
+
+    function saveEntry() {
+      const date = document.getElementById('fDate').value;
+      const name = FIXED_NAME;
+      const leaveType = selectedLeaveType;
+      const ot = document.getElementById('fOt').value;
+
+      if (!date || !leaveType || !selectedShift) {
+        showMsg('กรุณากรอกข้อมูลให้ครบ: Date, Leave Type, Select Shift', 'error');
+        return;
+      }
+
+      const isEditing = !!editingRowNumber;
+      const saveBtn = document.getElementById('saveBtn');
+      saveBtn.disabled = true;
+      saveBtn.textContent = isEditing ? 'กำลังบันทึกการแก้ไข...' : 'กำลังบันทึก...';
+
+      google.script.run
+        .withSuccessHandler(function () {
+          showMsg(isEditing ? 'แก้ไขข้อมูลเรียบร้อย ✅' : 'บันทึกข้อมูลเรียบร้อย ✅', 'success');
+          myEntriesCache = null; // เคลียร์แคชให้โหลดรายการใหม่ครั้งหน้า
+          editingRowNumber = null;
+          existingPictureUrl = '';
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Save';
+          document.getElementById('editingBanner').classList.remove('show');
+          setTimeout(goHome, 900);
+        })
+        .withFailureHandler(function (err) {
+          showMsg('เกิดข้อผิดพลาด: ' + err.message, 'error');
+          saveBtn.disabled = false;
+          saveBtn.textContent = isEditing ? 'บันทึกการแก้ไข' : 'Save';
+        })
+        .submitEntry({
+          date: date,
+          name: name,
+          leaveType: leaveType,
+          shift: selectedShift,
+          ot: ot,
+          pictureBase64: pictureBase64,
+          pictureFileName: pictureFileName,
+          pictureMimeType: pictureMimeType,
+          rowNumber: editingRowNumber,
+          existingPicture: existingPictureUrl
+        });
+    }
+  </script>
+</body>
+</html>
